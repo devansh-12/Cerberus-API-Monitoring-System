@@ -2,6 +2,8 @@ import pf from "pg"
 import config from "./index"
 import logger from "./logger"
 
+
+
 const { Pool } = pg;
 
 class PostgresConnection {
