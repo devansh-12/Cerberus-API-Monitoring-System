@@ -1,10 +1,10 @@
 import express from "express";
-import dependencies from "../Dependencies/dependencies.js"
+import dependencies from "../auth.container.js"
 import authorize from "../../../shared/middlewares/authorize.js"
 import authenticate from "../../../shared/middlewares/authenticate.js"
 import validate from "../../../shared/middlewares/validate.js";
 import requestLogger from "../../../shared/middlewares/requestLogger.js";
-import { onboardSuperAdminSchema, loginSchema, registrationSchema } from "../validation/authSchema.js";
+import { onboardSuperAdminSchema, loginSchema, registrationSchema } from "../validations/authSchema.js";
 import { APPLICATION_ROLES } from "../../../shared/constants/roles.js";
 
 const router = express.Router();

@@ -1,7 +1,6 @@
 import logger from "../../../shared/config/logger.js";
-"../../../shared/config/logger.js";
-import ApiKey from "../../../shared/models/ApiKey.js"
-import BaseApiKeyRepository from "./BaseApiKeyRepository.js"
+import ApiKey from "../../../shared/models/ApiKey.js";
+import BaseApiKeyRepository from "./BaseApiKeyRepository.js";
 
 /**
  * MongoApiKeyRepository class to handle database operations related to API keys

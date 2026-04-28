@@ -1,6 +1,6 @@
 import ResponseFormatter from '../utils/responseFormatter.js';
 import logger from '../config/logger.js';
-import clientContainer from '../../services/client/Dependencies/dependencies.js';
+import clientContainer from '../../modules/client/client.container.js';
 
 /**
  * Middleware to validate API keys against database

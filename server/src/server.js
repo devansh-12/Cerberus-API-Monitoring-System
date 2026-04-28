@@ -8,10 +8,12 @@ import postgres from './shared/config/postgres.js';
 import rabbitmq from './shared/config/rabbitmq.js';
 import errorHandler from './shared/middlewares/errorHandler.js';
 import ResponseFormatter from './shared/utils/responseFormatter.js';
-import cookieParser from "cookie-parser"
+import cookieParser from "cookie-parser";
 
 // Routers
-import authRouter from "./services/auth/routes/authRouter.js"
+import authRouter from "./modules/auth/routes/authRouter.js";
+import clientRouter from "./modules/client/routes/clientRoutes.js";
+
 /**
  * Initialize Express app
  */
@@ -25,18 +27,23 @@ app.use(cors({
     origin: true,
     credentials: true
 }));
-app.use(cookieParser())
+app.use(cookieParser());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-
 
 app.use((req, res, next) => {
     logger.info(`${req.method} ${req.path}`, {
         ip: req.ip,
         userAgent: req.headers['user-agent']
     });
-    next()
-})
+    next();
+});
+
+/**
+ * API Routes
+ */
+app.use("/api/auth", authRouter);
+app.use("/api/client", clientRouter);
 
 /**
  * Health check endpoint
@@ -55,7 +62,7 @@ app.get('/health', (req, res) => {
 });
 
 
-app.use("/", (req, res) => {
+app.get("/", (req, res) => {
     res.status(200).json(
         ResponseFormatter.success(
             {
@@ -64,13 +71,13 @@ app.use("/", (req, res) => {
                 endpoints: {
                     health: '/health',
                     auth: '/api/auth',
+                    client: '/api/client',
                     ingest: '/api/hit',
-                    analytics: '/api/analytics',
                 },
             },
             'API Hit Monitoring Service'
         )
-    )
+    );
 });
 
 /**

@@ -11,7 +11,7 @@ services:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./scripts/init-postgres.sql:/docker-entrypoint-initdb.d/init-postgres.sql
+      - ./server/scripts/init-postgres.sql:/docker-entrypoint-initdb.d/init-postgres.sql
     networks:
       - api-monitoring-network
     restart: unless-stopped
@@ -72,7 +72,7 @@ services:
 
   api-app:
     build:
-      context: .
+      context: ./server
       dockerfile: Dockerfile
     container_name: api-monitoring-app
     environment:
@@ -115,7 +115,7 @@ services:
       retries: 3
   consumer:
     build:
-      context: .
+      context: ./server
       dockerfile: Dockerfile.consumer
     container_name: api-monitoring-consumer
     environment:

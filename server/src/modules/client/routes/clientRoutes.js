@@ -1,5 +1,5 @@
 import express from "express";
-import clientDependencies from "../Dependencies/dependencies.js"
+import clientDependencies from "../client.container.js"
 import authenticate from "../../../shared/middlewares/authenticate.js"
 
 // Create a new router instance
