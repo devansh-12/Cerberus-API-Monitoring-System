@@ -129,6 +129,10 @@ apiKeySchema.index({ environment: 1, clientId: 1 });
 apiKeySchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 })
 //Because expired API keys should disappear automatically.Instead of manually running cron jobs like:
 
+apiKeySchema.methods.isExpired = function () {
+    if (!this.expiresAt) return false;
+    return new Date(this.expiresAt) < new Date();
+};
 
 const ApiKey = mongoose.model('ApiKey', apiKeySchema);
 
