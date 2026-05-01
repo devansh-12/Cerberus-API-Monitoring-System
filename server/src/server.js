@@ -11,8 +11,8 @@ import ResponseFormatter from './shared/utils/responseFormatter.js';
 import cookieParser from "cookie-parser";
 
 // Routers
-import authRouter from "./modules/auth/routes/authRouter.js";
-import clientRouter from "./modules/client/routes/clientRoutes.js";
+import authRouter from "./services/auth/routes/authRouter.js";
+import clientRouter from "./services/client/routes/clientRoutes.js";
 
 /**
  * Initialize Express app
