@@ -1,5 +1,5 @@
 import express from "express";
-import dependencies from "../auth.container.js"
+import dependencies from "../Dependencies/dependencies.js"
 import authorize from "../../../shared/middlewares/authorize.js"
 import authenticate from "../../../shared/middlewares/authenticate.js"
 import validate from "../../../shared/middlewares/validate.js";

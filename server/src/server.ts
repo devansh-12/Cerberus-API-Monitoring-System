@@ -7,11 +7,14 @@ import logger from './shared/config/logger.js';
 import mongodb from './shared/config/mongodb.js';
 import postgres from './shared/config/postgres.js';
 import rabbitmq from './shared/config/rabbitmq.js';
+// @ts-ignore
 import errorHandler from './shared/middlewares/errorHandler.js';
 import ResponseFormatter from './shared/utils/responseFormatter.js';
 
 // Routers
+// @ts-ignore
 import authRouter from './services/auth/routes/authRouter.js';
+// @ts-ignore
 import clientRouter from './services/client/routes/clientRoutes.js';
 
 /**
@@ -157,4 +160,8 @@ async function startServer(): Promise<void> {
   }
 }
 
-void startServer();
+export { app };
+
+if (process.env.NODE_ENV !== 'test') {
+  void startServer();
+}

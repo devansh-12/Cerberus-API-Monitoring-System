@@ -30,7 +30,11 @@ const envSchema = z.object({
 
   // Rate Limiting
   RATE_LIMIT_WINDOW_MS: z.string().transform(Number).default('60000'),
-  RATE_LIMIT_MAX_REQUESTS: z.string().transform(Number).default('100')
+  RATE_LIMIT_MAX_REQUESTS: z.string().transform(Number).default('100'),
+
+  COOKIE_HTTP_ONLY: z.string().transform((v) => v === 'true').default('true'),
+  COOKIE_SECURE: z.string().transform((v) => v === 'true').default('false'),
+  COOKIE_EXPIRES_IN: z.string().transform(Number).default('86400000'),
 });
 
 // Validate the process.env object against the schema
@@ -42,7 +46,12 @@ if (!_env.success) {
   process.exit(1);
 }
 
-// Export the validated and casted environment variables securely
-export const config = _env.data;
+const raw = _env.data;
+
+export const config = {
+  ...raw,
+  cookie: { httpOnly: raw.COOKIE_HTTP_ONLY, secure: raw.COOKIE_SECURE, expiresIn: raw.COOKIE_EXPIRES_IN },
+  jwt: { secret: raw.JWT_SECRET, expiresIn: raw.JWT_EXPIRES_IN }
+};
 
 export default config;
