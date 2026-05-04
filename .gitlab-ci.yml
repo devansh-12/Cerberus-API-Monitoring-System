@@ -2,10 +2,28 @@ stages:
   - test
   - sonar
   - build
+  - deploy
 
 unit_test:
   stage: test
   image: node:20
+  # Spin up a Redis sidecar so integration tests have a live cache available
+  services:
+    - name: redis:7-alpine
+      alias: redis
+  variables:
+    REDIS_URL: "redis://redis:6379"
+    REDIS_CACHE_TTL_VALID: "300"
+    REDIS_CACHE_TTL_INVALID: "60"
+    # Stub values required by Zod env validation (tests mock DB connections)
+    MONGO_URI: "mongodb://localhost:27017/test"
+    MONGO_DB_NAME: "test"
+    PG_HOST: "localhost"
+    PG_DATABASE: "test"
+    PG_USER: "test"
+    PG_PASSWORD: "test"
+    JWT_SECRET: "test-secret-of-at-least-32-characters-ok"
+    RABBITMQ_URL: "amqp://localhost"
   script:
     - cd server
     - npm ci
@@ -37,5 +55,23 @@ build_image:
     - docker build -t $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA -t $CI_REGISTRY_IMAGE:latest .
     - docker push $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA
     - docker push $CI_REGISTRY_IMAGE:latest
+  only:
+    - main
+
+deploy:
+  stage: deploy
+  image: bitnami/kubectl:latest
+  script:
+    # Decode the kubeconfig stored as a GitLab CI variable
+    - echo "$KUBECONFIG_CONTENT" | base64 -d > /tmp/kubeconfig
+    - export KUBECONFIG=/tmp/kubeconfig
+    # Inject the new image SHA into the deployment manifest
+    - sed -i "s|IMAGE_PLACEHOLDER|$CI_REGISTRY_IMAGE:$CI_COMMIT_SHA|g" k8s/deployment.yaml
+    # Apply all manifests (Redis first so the service exists before the app starts)
+    - kubectl apply -f k8s/redis.yaml
+    - kubectl apply -f k8s/deployment.yaml
+    - kubectl apply -f k8s/service.yaml
+    # Wait for the rollout to complete
+    - kubectl rollout status deployment/cerberus-api -n cerberus --timeout=120s
   only:
     - main
