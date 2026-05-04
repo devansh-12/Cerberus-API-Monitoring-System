@@ -3,7 +3,7 @@ import MongoApiKeyRepository from "./repositories/ApiKeyRepository.js";
 import MongoUserRepository from "../auth/repositories/UserRepository.js";
 import { ClientService } from "./services/clientService.js";
 import { ClientController } from "./controllers/clientController.js";
-import authContainer from "../auth/auth.container.js";
+import authContainer from "../auth/Dependencies/dependencies.js";
 
 /**
  * Container class to initialize and manage dependencies for the client service.

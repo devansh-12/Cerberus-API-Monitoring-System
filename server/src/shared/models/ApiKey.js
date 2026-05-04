@@ -1,5 +1,5 @@
 import mongoose from "mongoose";
-import SecurityUtils from "../utils/SecurityUtils";
+import SecurityUtils from "../utils/SecurityUtils.js";
 
 
 const apiKeySchema = new mongoose.Schema(

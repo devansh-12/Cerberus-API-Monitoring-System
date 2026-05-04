@@ -21,6 +21,10 @@ const envSchema = z.object({
   RABBITMQ_RETRY_ATTEMPTS: z.string().transform(Number).default('3'),
   RABBITMQ_RETRY_DELAY: z.string().transform(Number).default('200'),
 
+  REDIS_URL: z.string().url('REDIS_URL must be a valid URL').default('redis://localhost:6379'),
+  REDIS_CACHE_TTL_VALID: z.string().transform(Number).default('300'),
+  REDIS_CACHE_TTL_INVALID: z.string().transform(Number).default('60'),
+
   JWT_SECRET: z.string().min(32, 'JWT_SECRET must be at least 32 characters'),
   JWT_EXPIRES_IN: z.string().default('24h'),
 
@@ -50,6 +54,7 @@ export const config = {
   mongo: { uri: raw.MONGO_URI, dbName: raw.MONGO_DB_NAME },
   postgres: { host: raw.PG_HOST, port: raw.PG_PORT, database: raw.PG_DATABASE, user: raw.PG_USER, password: raw.PG_PASSWORD },
   rabbitmq: { url: raw.RABBITMQ_URL, queue: raw.RABBITMQ_QUEUE, retryAttempts: raw.RABBITMQ_RETRY_ATTEMPTS, retryDelay: raw.RABBITMQ_RETRY_DELAY },
+  redis: { url: raw.REDIS_URL, ttlValid: raw.REDIS_CACHE_TTL_VALID, ttlInvalid: raw.REDIS_CACHE_TTL_INVALID },
   jwt: { secret: raw.JWT_SECRET, expiresIn: raw.JWT_EXPIRES_IN },
   rateLimit: { windowMs: raw.RATE_LIMIT_WINDOW_MS, maxRequests: raw.RATE_LIMIT_MAX_REQUESTS },
   cookie: { httpOnly: raw.COOKIE_HTTP_ONLY, secure: raw.COOKIE_SECURE, expiresIn: raw.COOKIE_EXPIRES_IN },

@@ -1,6 +1,6 @@
-import { AuthController } from "../controller/authController.js";
-import { AuthService } from "../service/authService.js";
-import MongoUserRepository from "../repository/UserRepository.js"
+import { AuthController } from "../controllers/authController.js";
+import { AuthService } from "../services/authService.js";
+import MongoUserRepository from "../repositories/UserRepository.js"
 
 /**
  * Dependency Injection Container for the Auth module.

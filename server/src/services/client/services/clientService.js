@@ -4,6 +4,15 @@ import { APPLICATION_ROLES, isValidClientRole } from "../../../shared/constants/
 import AppError from "../../../shared/utils/AppError.js";
 import { v4 as uudiv4 } from "uuid";
 import crypto from 'crypto';
+import { CacheService } from "../../../shared/utils/CacheService.js";
+import redisConnection from "../../../shared/config/redis.js";
+
+/**
+ * Cache key prefix — must match the prefix used in validateApiKey middleware.
+ * Changing this prefix acts as a zero-downtime cache flush.
+ */
+const API_KEY_CACHE_PREFIX = 'apikey:v1:';
+const cacheService = new CacheService(redisConnection.getClient());
 
 /**
  * ClientService class to handle business logic related to clients
@@ -227,6 +236,10 @@ export class ClientService {
                 environment,
                 createdBy: user.userId
             });
+
+            // Invalidate any existing cache entry for this key value so the
+            // next request re-validates against the freshly created record.
+            await cacheService.invalidate(`${API_KEY_CACHE_PREFIX}${keyValue}`);
 
             return apiKey;
         } catch (error) {
