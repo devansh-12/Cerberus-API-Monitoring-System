@@ -1,5 +1,5 @@
-import { jest, describe, it, expect, beforeEach, afterEach } from '@jest/globals';
-import EventEmitter from 'events';
+import { jest, describe, it, expect, beforeEach } from '@jest/globals';
+import EventEmitter from 'node:events';
 
 // Create a mock RabbitMQ channel and connection
 class MockChannel extends EventEmitter {

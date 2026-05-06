@@ -3,7 +3,7 @@
 node_modules/
 
 # Logs
-
+.cursor
 logs
 *.log
 npm-debug.log*
