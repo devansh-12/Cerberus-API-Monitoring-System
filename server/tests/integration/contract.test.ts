@@ -12,6 +12,9 @@ jest.mock('../../src/shared/config/postgres.js', () => ({
 jest.mock('../../src/shared/config/rabbitmq.js', () => ({
   default: { connect: jest.fn(), close: jest.fn() }
 }));
+jest.mock('../../src/shared/config/redis.js', () => ({
+  default: { getClient: jest.fn().mockReturnValue({ on: jest.fn(), get: jest.fn(), set: jest.fn() }) }
+}));
 
 describe('API Contract Tests', () => {
   describe('Health Check endpoint', () => {

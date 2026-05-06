@@ -1,4 +1,4 @@
-import { jest, describe, it, expect } from '@jest/globals';
+import { jest, describe, it, expect, beforeEach } from '@jest/globals';
 import request from 'supertest';
 import { app } from '../../src/server.js';
 
@@ -22,6 +22,10 @@ jest.mock('../../src/shared/config/rabbitmq.js', () => ({
     connect: jest.fn(),
     close: jest.fn(),
   }
+}));
+
+jest.mock('../../src/shared/config/redis.js', () => ({
+  default: { getClient: jest.fn().mockReturnValue({ on: jest.fn(), get: jest.fn(), set: jest.fn() }) }
 }));
 
 // No config override
