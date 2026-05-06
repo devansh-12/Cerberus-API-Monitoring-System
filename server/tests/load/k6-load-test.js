@@ -9,7 +9,7 @@ export const options = {
   ],
 };
 
-export default function () {
+export default function loadTest() {
   // Replace with your actual API endpoint if different
   const res = http.get('http://localhost:3000/health');
   check(res, { 'status was 200': (r) => r.status == 200 });

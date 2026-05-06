@@ -24,6 +24,10 @@ jest.mock('../../src/shared/config/rabbitmq.js', () => ({
   }
 }));
 
+jest.mock('../../src/shared/config/redis.js', () => ({
+  default: { getClient: jest.fn().mockReturnValue({ on: jest.fn(), get: jest.fn(), set: jest.fn() }) }
+}));
+
 // No config override
 
 // Mock the Auth repository/service methods since we are testing the API layer

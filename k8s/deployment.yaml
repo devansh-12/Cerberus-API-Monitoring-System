@@ -14,9 +14,10 @@ spec:
       labels:
         app: cerberus-api
     spec:
+      automountServiceAccountToken: false
       containers:
       - name: cerberus-api
-        image: IMAGE_PLACEHOLDER
+        image: cerberus-api:1.0.0
         ports:
         - containerPort: 3000
         env:
@@ -28,3 +29,11 @@ spec:
           value: "300"
         - name: REDIS_CACHE_TTL_INVALID
           value: "60"
+        resources:
+          requests:
+            cpu: "100m"
+            memory: "128Mi"
+            storage: "1Gi"
+          limits:
+            cpu: "500m"
+            memory: "256Mi"

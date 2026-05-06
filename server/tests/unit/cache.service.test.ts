@@ -1,5 +1,8 @@
 import { jest, describe, it, expect, beforeEach } from '@jest/globals';
 import { CacheService } from '../../src/shared/utils/CacheService.js';
+import config from '../../src/shared/config/index.js';
+
+console.log('CONFIG:', config);
 
 // ── Mock Redis client ──────────────────────────────────────────────────────────
 // We build a plain object shaped like ioredis — no module mock needed.
@@ -8,6 +11,7 @@ import { CacheService } from '../../src/shared/utils/CacheService.js';
 // jest v30 requires this — plain jest.fn() infers 'never' as the return type
 // which breaks mockResolvedValue; zero-arg signatures break toHaveBeenCalledWith.
 const mockRedis = {
+
   get:   jest.fn<(key: string) => Promise<string | null>>(),
   setex: jest.fn<(key: string, ttl: number, value: string) => Promise<string>>(),
   del:   jest.fn<(key: string) => Promise<number>>(),
@@ -90,7 +94,7 @@ describe('CacheService', () => {
       mockRedis.setex.mockRejectedValue(new Error('Redis write failed'));
 
       // Should silently absorb the error — caching is non-critical
-      await expect(cache.setValid('key', { foo: 'bar' })).resolves.not.toThrow();
+      await expect(cache.setValid('key', { foo: 'bar' }, 300)).resolves.not.toThrow();
     });
   });
 
@@ -108,7 +112,7 @@ describe('CacheService', () => {
     it('does not throw when Redis throws during setex', async () => {
       mockRedis.setex.mockRejectedValue(new Error('Redis write failed'));
 
-      await expect(cache.setInvalid('key')).resolves.not.toThrow();
+      await expect(cache.setInvalid('key', 60)).resolves.not.toThrow();
     });
   });
 

@@ -1,6 +1,6 @@
-import { jest, describe, it, expect, beforeEach } from '@jest/globals';
+import { jest, describe, it, expect } from '@jest/globals';
 import request from 'supertest';
-import express, { Request, Response, NextFunction } from 'express';
+import express, { Request, Response } from 'express';
 import authenticate from '../../src/shared/middlewares/authenticate.js';
 // @ts-ignore
 import authorize from '../../src/shared/middlewares/authorize.js';
