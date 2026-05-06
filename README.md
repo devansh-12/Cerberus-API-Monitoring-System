@@ -255,3 +255,222 @@ docker exec -it api-monitoring-redis redis-cli INFO memory | grep used_memory_hu
 # Gracefully restart only the API pod (K8s rolling update)
 kubectl rollout restart deployment/cerberus-api -n cerberus
 ```
+
+---
+
+## 📡 Client Integration Guide
+
+Cerberus uses an **async fire-and-forget** pattern. Your application wraps its own request lifecycle in a middleware, then fires a non-blocking POST to Cerberus **after** the response is sent — Cerberus never adds latency to your users.
+
+### The API Contract
+
+**Endpoint:** `POST /api/hit`  
+**Header:** `x-api-key: <your_cerberus_api_key>`
+
+```json
+{
+  "endpoint":      "/users/profile",
+  "method":        "GET",
+  "statusCode":    200,
+  "latencyMs":     45,
+  "serviceName":   "user-service",
+  "requestBytes":  320,
+  "responseBytes": 1840
+}
+```
+
+| Field | Type | Required | Description |
+|---|---|---|---|
+| `endpoint` | string | ✅ | The matched route path (e.g. `/api/orders/:id`) |
+| `method` | string | ✅ | HTTP verb: `GET`, `POST`, `PUT`, etc. |
+| `statusCode` | integer | ✅ | HTTP status code returned to your client |
+| `latencyMs` | integer | ✅ | Total response time in milliseconds |
+| `serviceName` | string | ✅ | Logical name of your service (e.g. `checkout-api`) |
+| `requestBytes` | integer | ⬜ | Size of incoming request body in bytes |
+| `responseBytes` | integer | ⬜ | Size of outgoing response body in bytes |
+
+**Success:** `202 Accepted` — the hit is queued; you do not need to wait for this response.  
+**On `429`:** Back off using the `Retry-After` header returned by Cerberus.
+
+---
+
+### Step 1 — Get Your API Key
+
+```bash
+curl -X POST https://your-cerberus-host/api/client/<clientId>/keys \
+  -H "Authorization: Bearer <admin_jwt>" \
+  -H "Content-Type: application/json" \
+  -d '{ "name": "production-key", "environment": "production" }'
+```
+
+Store the returned `keyValue` as `CERBERUS_API_KEY` in your environment — **it is shown only once**.
+
+---
+
+### Step 2 — Add the Middleware to Your Application
+
+The pattern is identical across all languages:
+1. Record `start = now()` **before** your handler runs.
+2. Run your normal handler.
+3. **After** the response is sent, fire a non-blocking POST to Cerberus.
+
+#### Node.js / Express
+
+```javascript
+const CERBERUS_URL = process.env.CERBERUS_URL;
+const CERBERUS_KEY = process.env.CERBERUS_API_KEY;
+
+function cerberusMiddleware(req, res, next) {
+  const start = Date.now();
+
+  // 'finish' fires after the response bytes are fully flushed to the client
+  res.on('finish', () => {
+    const payload = {
+      endpoint:      req.route?.path ?? req.path,
+      method:        req.method,
+      statusCode:    res.statusCode,
+      latencyMs:     Date.now() - start,
+      serviceName:   'my-service',
+      requestBytes:  Number(req.headers['content-length'] ?? 0),
+      responseBytes: Number(res.getHeader('content-length') ?? 0),
+    };
+
+    // Fire-and-forget — no await, never blocks the response
+    fetch(CERBERUS_URL, {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json', 'x-api-key': CERBERUS_KEY },
+      body:    JSON.stringify(payload),
+    }).catch(() => {});  // Silently discard — Cerberus failure must never crash your app
+  });
+
+  next();
+}
+
+app.use(cerberusMiddleware);
+```
+
+#### Python / FastAPI
+
+```python
+import time, os, asyncio
+import httpx
+from fastapi import Request
+
+CERBERUS_URL = os.getenv("CERBERUS_URL")
+CERBERUS_KEY = os.getenv("CERBERUS_API_KEY")
+
+async def cerberus_middleware(request: Request, call_next):
+    start = time.monotonic()
+    response = await call_next(request)
+    latency_ms = int((time.monotonic() - start) * 1000)
+
+    payload = {
+        "endpoint":      str(request.url.path),
+        "method":        request.method,
+        "statusCode":    response.status_code,
+        "latencyMs":     latency_ms,
+        "serviceName":   "my-service",
+        "requestBytes":  int(request.headers.get("content-length", 0)),
+        "responseBytes": int(response.headers.get("content-length", 0)),
+    }
+
+    asyncio.create_task(_send(payload))  # Non-blocking background coroutine
+    return response
+
+async def _send(payload: dict):
+    try:
+        async with httpx.AsyncClient(timeout=3.0) as client:
+            await client.post(CERBERUS_URL, json=payload,
+                              headers={"x-api-key": CERBERUS_KEY})
+    except Exception:
+        pass  # Cerberus is non-critical — never surface this error
+
+app.middleware("http")(cerberus_middleware)
+```
+
+#### Go / net/http
+
+```go
+type responseWriter struct {
+    http.ResponseWriter
+    statusCode int
+}
+func (rw *responseWriter) WriteHeader(code int) {
+    rw.statusCode = code
+    rw.ResponseWriter.WriteHeader(code)
+}
+
+func CerberusMiddleware(next http.Handler) http.Handler {
+    return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+        start := time.Now()
+        rw := &responseWriter{w, http.StatusOK}
+        next.ServeHTTP(rw, r)
+
+        go func() {  // goroutine = fire-and-forget
+            body, _ := json.Marshal(map[string]any{
+                "endpoint":    r.URL.Path,
+                "method":      r.Method,
+                "statusCode":  rw.statusCode,
+                "latencyMs":   time.Since(start).Milliseconds(),
+                "serviceName": "my-service",
+            })
+            req, _ := http.NewRequest("POST", os.Getenv("CERBERUS_URL"), bytes.NewBuffer(body))
+            req.Header.Set("Content-Type", "application/json")
+            req.Header.Set("x-api-key", os.Getenv("CERBERUS_API_KEY"))
+            (&http.Client{Timeout: 3 * time.Second}).Do(req)
+        }()
+    })
+}
+```
+
+#### PHP (PSR-15 Middleware)
+
+```php
+class CerberusMiddleware implements MiddlewareInterface {
+    public function process(Request $request, Handler $handler): Response {
+        $start = microtime(true);
+        $response = $handler->handle($request);
+
+        // register_shutdown_function runs after the response is sent to the browser
+        register_shutdown_function(function() use ($request, $response, $start) {
+            $payload = json_encode([
+                'endpoint'    => $request->getUri()->getPath(),
+                'method'      => $request->getMethod(),
+                'statusCode'  => $response->getStatusCode(),
+                'latencyMs'   => (int)((microtime(true) - $start) * 1000),
+                'serviceName' => 'my-service',
+            ]);
+            $ctx = stream_context_create(['http' => [
+                'method'  => 'POST',
+                'header'  => "Content-Type: application/json\r\nx-api-key: " . getenv('CERBERUS_API_KEY'),
+                'content' => $payload,
+                'timeout' => 3,
+            ]]);
+            @file_get_contents(getenv('CERBERUS_URL'), false, $ctx);
+        });
+
+        return $response;
+    }
+}
+```
+
+---
+
+### Step 3 — Set Environment Variables
+
+```dotenv
+CERBERUS_URL=https://your-cerberus-host/api/hit
+CERBERUS_API_KEY=apim_<your_key_from_step_1>
+```
+
+---
+
+### ⚠️ Tradeoffs to Know
+
+| Concern | Risk | Mitigation |
+|---|---|---|
+| **Cerberus goes down** | Background POSTs fail silently | Always wrap in try/catch and discard the error |
+| **Traffic spike (>1k RPS)** | Thread/goroutine explosion | Switch to in-memory batching — buffer hits, flush every 5s |
+| **Socket exhaustion** | Many concurrent background connections | Reuse a shared HTTP client with a connection pool (shown in examples) |
+| **Streamed response bodies** | `content-length` header absent | Default to `0`; `requestBytes`/`responseBytes` are optional |
+| **Cerberus responds slowly** | Background thread held open | Hard 3s timeout on all Cerberus calls (shown in examples) |

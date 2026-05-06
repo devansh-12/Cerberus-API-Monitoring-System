@@ -18,6 +18,7 @@ spec:
         app: cerberus-redis
         component: cache
     spec:
+      automountServiceAccountToken: false
       containers:
         - name: redis
           image: redis:7-alpine
