@@ -32,7 +32,12 @@ const Login: React.FC = () => {
             <div className="flex flex-col space-y-2">
               <div className="flex justify-between items-center">
                 <label className="font-body-sm text-body-sm text-text-secondary font-medium" htmlFor="password">Password</label>
-                <a className="font-body-sm text-body-sm text-primary hover:text-primary-fixed-dim transition-colors duration-200" href="#">Forgot password?</a>
+                <button
+                  type="button"
+                  className="font-body-sm text-body-sm text-primary hover:text-primary-fixed-dim transition-colors duration-200 bg-transparent border-0 p-0 cursor-pointer"
+                >
+                  Forgot password?
+                </button>
               </div>
               <input className="bg-surface border border-surface-border rounded text-text-primary font-body-base text-body-base px-4 py-3 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all duration-200" id="password" name="password" placeholder="••••••••" required type="password"/>
             </div>
@@ -48,8 +53,14 @@ const Login: React.FC = () => {
 
         <div className="mt-8 text-center">
           <p className="font-body-sm text-body-sm text-text-secondary">
-            Don't have an account?
-            <a className="text-primary hover:text-primary-fixed-dim transition-colors duration-200 ml-1" href="#">Contact your Administrator</a>
+            Don&apos;t have an account?
+            {' '}
+            <button
+              type="button"
+              className="text-primary hover:text-primary-fixed-dim transition-colors duration-200 ml-1 bg-transparent border-0 p-0 cursor-pointer font-body-sm text-body-sm"
+            >
+              Contact your Administrator
+            </button>
           </p>
         </div>
       </div>

@@ -30,19 +30,39 @@ const ClientDetails: React.FC = () => {
       </div>
 
       <div className="border-b border-surface-border mb-6">
-        <nav aria-label="Tabs" className="-mb-px flex space-x-8">
-          <a aria-current="page" className="border-blue-500 text-blue-500 whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm" href="#">
+        <nav aria-label="Tabs" className="-mb-px flex space-x-8" role="tablist">
+          <button
+            type="button"
+            role="tab"
+            aria-selected="true"
+            className="border-blue-500 text-blue-500 whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm bg-transparent cursor-pointer"
+          >
             Overview
-          </a>
-          <a className="border-transparent text-text-secondary hover:text-text-primary hover:border-surface-border whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm" href="#">
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected="false"
+            className="border-transparent text-text-secondary hover:text-text-primary hover:border-surface-border whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm bg-transparent cursor-pointer"
+          >
             API Keys
-          </a>
-          <a className="border-transparent text-text-secondary hover:text-text-primary hover:border-surface-border whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm" href="#">
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected="false"
+            className="border-transparent text-text-secondary hover:text-text-primary hover:border-surface-border whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm bg-transparent cursor-pointer"
+          >
             Users
-          </a>
-          <a className="border-transparent text-text-secondary hover:text-text-primary hover:border-surface-border whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm" href="#">
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected="false"
+            className="border-transparent text-text-secondary hover:text-text-primary hover:border-surface-border whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm bg-transparent cursor-pointer"
+          >
             Integration
-          </a>
+          </button>
         </nav>
       </div>
 

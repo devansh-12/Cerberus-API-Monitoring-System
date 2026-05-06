@@ -11,9 +11,9 @@ const TopNavBar: React.FC = () => {
       </div>
       <div className="flex items-center gap-6">
         <nav className="hidden md:flex items-center gap-4">
-          <a className="text-slate-400 hover:text-white transition-colors duration-200" href="#">Docs</a>
-          <a className="text-slate-400 hover:text-white transition-colors duration-200" href="#">API Status</a>
-          <a className="text-slate-400 hover:text-white transition-colors duration-200" href="#">Changelog</a>
+          <button type="button" className="text-slate-400 hover:text-white transition-colors duration-200">Docs</button>
+          <button type="button" className="text-slate-400 hover:text-white transition-colors duration-200">API Status</button>
+          <button type="button" className="text-slate-400 hover:text-white transition-colors duration-200">Changelog</button>
         </nav>
         <div className="flex items-center gap-4 border-l border-surface-border pl-6">
           <button className="text-slate-400 hover:text-white transition-colors duration-200 relative">

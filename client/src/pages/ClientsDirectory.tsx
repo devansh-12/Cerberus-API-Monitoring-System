@@ -13,7 +13,7 @@ const ClientsDirectory: React.FC = () => {
         </div>
         <button className="bg-primary text-on-primary px-4 py-2 rounded-DEFAULT font-body-sm text-body-sm font-semibold flex items-center gap-2 hover:opacity-90 transition-opacity">
           <span className="material-symbols-outlined text-[18px]">add_business</span>
-          Onboard New Client
+          <span>Onboard New Client</span>
         </button>
       </div>
 
@@ -70,8 +70,8 @@ const ClientsDirectory: React.FC = () => {
               <td className="py-3 px-4 font-body-sm text-body-sm text-text-secondary">Oct 12, 2023</td>
               <td className="py-3 px-4">
                 <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-xs font-medium bg-status-success/10 text-status-success border border-status-success/20">
-                  <span className="w-1.5 h-1.5 rounded-full bg-status-success"></span>
-                  Active
+                  <span className="w-1.5 h-1.5 rounded-full bg-status-success" aria-hidden="true" />
+                  <span>Active</span>
                 </span>
               </td>
               <td className="py-3 px-4 text-right">
@@ -94,8 +94,8 @@ const ClientsDirectory: React.FC = () => {
               <td className="py-3 px-4 font-body-sm text-body-sm text-text-secondary">Sep 05, 2023</td>
               <td className="py-3 px-4">
                 <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-xs font-medium bg-status-success/10 text-status-success border border-status-success/20">
-                  <span className="w-1.5 h-1.5 rounded-full bg-status-success"></span>
-                  Active
+                  <span className="w-1.5 h-1.5 rounded-full bg-status-success" aria-hidden="true" />
+                  <span>Active</span>
                 </span>
               </td>
               <td className="py-3 px-4 text-right">
@@ -118,8 +118,8 @@ const ClientsDirectory: React.FC = () => {
               <td className="py-3 px-4 font-body-sm text-body-sm text-text-secondary">Nov 20, 2023</td>
               <td className="py-3 px-4">
                 <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-xs font-medium bg-status-warning/10 text-status-warning border border-status-warning/20">
-                  <span className="w-1.5 h-1.5 rounded-full bg-status-warning"></span>
-                  Pending
+                  <span className="w-1.5 h-1.5 rounded-full bg-status-warning" aria-hidden="true" />
+                  <span>Pending</span>
                 </span>
               </td>
               <td className="py-3 px-4 text-right">
@@ -142,8 +142,8 @@ const ClientsDirectory: React.FC = () => {
               <td className="py-3 px-4 font-body-sm text-body-sm text-text-secondary">Jan 15, 2022</td>
               <td className="py-3 px-4">
                 <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-xs font-medium bg-status-error/10 text-status-error border border-status-error/20">
-                  <span className="w-1.5 h-1.5 rounded-full bg-status-error"></span>
-                  Suspended
+                  <span className="w-1.5 h-1.5 rounded-full bg-status-error" aria-hidden="true" />
+                  <span>Suspended</span>
                 </span>
               </td>
               <td className="py-3 px-4 text-right">
