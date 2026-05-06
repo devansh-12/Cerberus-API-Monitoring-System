@@ -45,9 +45,11 @@ export interface DashboardData {
   recentActitivy: TimeSeriesPoint[] | null;   // note: typo in backend is intentional
 }
 
+export type TimeRange = '24h' | '7d' | '30d';
+
 // ── Helpers ────────────────────────────────────────────────────────────────
 
-function buildParams(timeRange: '24h' | '7d' | '30d', clientId?: string) {
+function buildParams(timeRange: TimeRange, clientId?: string) {
   const now = Date.now();
   const offsets: Record<string, number> = {
     '24h': 24 * 60 * 60 * 1000,
@@ -70,7 +72,7 @@ function buildParams(timeRange: '24h' | '7d' | '30d', clientId?: string) {
  * Super admins can optionally scope to a specific clientId.
  */
 export async function getDashboard(
-  timeRange: '24h' | '7d' | '30d' = '24h',
+  timeRange: TimeRange = '24h',
   clientId?: string
 ): Promise<DashboardData> {
   const res = await api.get<{ data: DashboardData }>('/analytics/dashboard', {
@@ -84,7 +86,7 @@ export async function getDashboard(
  * Returns only the OverallStats aggregate.
  */
 export async function getStats(
-  timeRange: '24h' | '7d' | '30d' = '24h',
+  timeRange: TimeRange = '24h',
   clientId?: string
 ): Promise<OverallStats> {
   const res = await api.get<{ data: OverallStats }>('/analytics/stats', {

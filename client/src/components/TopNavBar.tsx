@@ -99,16 +99,14 @@ const TopNavBar: React.FC = () => {
                     type="button"
                     className="w-full flex items-center gap-2 px-4 py-2 text-sm text-text-secondary hover:text-text-primary hover:bg-surface-background transition-colors"
                   >
-                    <span className="material-symbols-outlined text-base">person</span>
-                    Profile
+                    <span className="material-symbols-outlined text-base">person</span> Profile
                   </button>
                   <button
                     type="button"
                     onClick={logout}
                     className="w-full flex items-center gap-2 px-4 py-2 text-sm text-status-error hover:bg-status-error/10 transition-colors"
                   >
-                    <span className="material-symbols-outlined text-base">logout</span>
-                    Sign out
+                    <span className="material-symbols-outlined text-base">logout</span> Sign out
                   </button>
                 </div>
               </div>

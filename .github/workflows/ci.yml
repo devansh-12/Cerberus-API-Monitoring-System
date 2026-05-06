@@ -43,6 +43,18 @@ jobs:
         with:
           name: coverage-report
           path: coverage/**
-
+      
+      - name: SonarCloud Scan
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+        run: |
+          # Install SonarScanner (if not already in your devDependencies)
+          npm install -g sonar-scanner
+    sonar-scanner \
+      -Dsonar.projectKey=your-org_cerberus-api-monitoring-system \
+      -Dsonar.organization=your-org \
+      -Dsonar.host.url=$SONAR_HOST_URL \
+      -Dsonar.login=$SONAR_TOKEN
   # Optional deployment job could be added here
 

@@ -41,7 +41,7 @@ const AVATAR_COLORS = [
 ];
 function avatarColor(name: string) {
   let h = 0;
-  for (let i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) & 0xffff;
+  for (let i = 0; i < name.length; i++) h = (h * 31 + (name.codePointAt(i) || 0)) & 0xffff;
   return AVATAR_COLORS[h % AVATAR_COLORS.length];
 }
 
@@ -94,7 +94,7 @@ const OnboardModal: React.FC<OnboardModalProps> = ({ open, onClose, onSuccess })
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       {/* Backdrop */}
-      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') onClose(); }} />
 
       {/* Dialog */}
       <div className="relative bg-surface-card border border-surface-border rounded-xl shadow-2xl w-full max-w-md p-6 z-10">
@@ -185,13 +185,11 @@ const OnboardModal: React.FC<OnboardModalProps> = ({ open, onClose, onSuccess })
             >
               {mutation.isPending ? (
                 <>
-                  <span className="material-symbols-outlined text-[16px] animate-spin">progress_activity</span>
-                  Creating…
+                  <span className="material-symbols-outlined text-[16px] animate-spin">progress_activity</span> Creating…
                 </>
               ) : (
                 <>
-                  <span className="material-symbols-outlined text-[16px]">add_business</span>
-                  Onboard Client
+                  <span className="material-symbols-outlined text-[16px]">add_business</span> Onboard Client
                 </>
               )}
             </button>
@@ -291,7 +289,7 @@ const ClientsDirectory: React.FC = () => {
         {isLoading && (
           <div className="p-6 space-y-3">
             {Array.from({ length: 5 }).map((_, i) => (
-              <Skeleton key={i} className="h-12 w-full" />
+              <Skeleton key={`skel-${i}`} className="h-12 w-full" />
             ))}
           </div>
         )}

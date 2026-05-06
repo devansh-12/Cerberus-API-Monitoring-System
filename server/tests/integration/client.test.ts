@@ -1,7 +1,6 @@
 import { jest, describe, it, expect, beforeEach } from '@jest/globals';
 import request from 'supertest';
 import { app } from '../../src/server.js';
-import authenticate from '../../src/shared/middlewares/authenticate.js';
 
 // Mock all external connections to ensure no real DB is hit
 jest.mock('../../src/shared/config/mongodb.js', () => ({

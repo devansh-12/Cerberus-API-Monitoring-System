@@ -41,7 +41,7 @@ const CreateKeyModal: React.FC<{
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') onClose(); }} />
       <div className="relative bg-surface-card border border-surface-border rounded-xl shadow-2xl w-full max-w-md p-6 z-10">
         <div className="flex justify-between items-center mb-5">
           <h3 className="font-headline-md text-text-primary">Generate API Key</h3>
@@ -50,16 +50,16 @@ const CreateKeyModal: React.FC<{
         {err && <div className="mb-4 p-3 rounded-lg bg-status-error/10 border border-status-error/30 text-status-error text-sm">{err}</div>}
         <form onSubmit={(e) => { e.preventDefault(); mutation.mutate(form); }} className="space-y-4">
           <div>
-            <label className="block text-xs text-text-secondary mb-1">Key Name <span className="text-status-error">*</span></label>
-            <input required value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} placeholder="e.g. Production Key" className="w-full bg-surface-background border border-surface-border rounded px-3 py-2 text-sm text-text-primary focus:outline-none focus:border-primary" />
+            <label htmlFor="key-name" className="block text-xs text-text-secondary mb-1">Key Name <span className="text-status-error">*</span></label>
+            <input id="key-name" required value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} placeholder="e.g. Production Key" className="w-full bg-surface-background border border-surface-border rounded px-3 py-2 text-sm text-text-primary focus:outline-none focus:border-primary" />
           </div>
           <div>
-            <label className="block text-xs text-text-secondary mb-1">Description</label>
-            <input value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} placeholder="Optional description" className="w-full bg-surface-background border border-surface-border rounded px-3 py-2 text-sm text-text-primary focus:outline-none focus:border-primary" />
+            <label htmlFor="key-desc" className="block text-xs text-text-secondary mb-1">Description</label>
+            <input id="key-desc" value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} placeholder="Optional description" className="w-full bg-surface-background border border-surface-border rounded px-3 py-2 text-sm text-text-primary focus:outline-none focus:border-primary" />
           </div>
           <div>
-            <label className="block text-xs text-text-secondary mb-1">Environment</label>
-            <select value={form.environment} onChange={e => setForm(f => ({ ...f, environment: e.target.value as CreateApiKeyPayload['environment'] }))} className="w-full bg-surface-background border border-surface-border rounded px-3 py-2 text-sm text-text-primary focus:outline-none focus:border-primary">
+            <label htmlFor="key-env" className="block text-xs text-text-secondary mb-1">Environment</label>
+            <select id="key-env" value={form.environment} onChange={e => setForm(f => ({ ...f, environment: e.target.value as CreateApiKeyPayload['environment'] }))} className="w-full bg-surface-background border border-surface-border rounded px-3 py-2 text-sm text-text-primary focus:outline-none focus:border-primary">
               <option value="production">Production</option>
               <option value="staging">Staging</option>
               <option value="development">Development</option>
@@ -110,11 +110,15 @@ const OverviewTab: React.FC<{ clientId: string; timeRange: TimeRange }> = ({ cli
   const stats = data?.stats;
   const top = data?.topEndpoints ?? [];
 
-  if (isLoading) return <div className="space-y-4">{Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-24 w-full" />)}</div>;
+  if (isLoading) return <div className="space-y-4">{Array.from({ length: 3 }).map((_, i) => <Skeleton key={`skel-${i}`} className="h-24 w-full" />)}</div>;
   if (isError) return <div className="p-6 flex items-center gap-2 text-status-error text-sm"><span className="material-symbols-outlined">error</span>Failed to load analytics for this client.</div>;
   if (!stats) return <div className="p-6 text-text-secondary text-sm">No analytics data yet for this client.</div>;
 
-  const successRate = parseFloat((100 - stats.errorRate).toFixed(2));
+  const successRate = Number.parseFloat((100 - stats.errorRate).toFixed(2));
+
+  let errorRateColorClass = 'text-status-success';
+  if (stats.errorRate > 5) errorRateColorClass = 'text-status-error';
+  else if (stats.errorRate > 1) errorRateColorClass = 'text-status-warning';
 
   return (
     <div className="space-y-6">
@@ -134,7 +138,7 @@ const OverviewTab: React.FC<{ clientId: string; timeRange: TimeRange }> = ({ cli
             <div className="text-text-secondary font-body-sm text-body-sm">Error Rate (5xx)</div>
             <span className="material-symbols-outlined text-text-secondary">error_outline</span>
           </div>
-          <div className={`font-display-lg text-display-lg mb-1 ${stats.errorRate > 5 ? 'text-status-error' : stats.errorRate > 1 ? 'text-status-warning' : 'text-status-success'}`}>
+          <div className={`font-display-lg text-display-lg mb-1 ${errorRateColorClass}`}>
             {stats.errorRate.toFixed(2)}%
           </div>
           <div className="text-xs text-text-secondary">{formatNumber(stats.errorHits)} error hits</div>
@@ -167,13 +171,13 @@ const OverviewTab: React.FC<{ clientId: string; timeRange: TimeRange }> = ({ cli
               </tr>
             </thead>
             <tbody className="divide-y divide-surface-border">
-              {top.map((ep, i) => (
-                <tr key={i} className="hover:bg-surface-background/30 transition-colors">
+              {top.map((ep) => (
+                <tr key={`${ep.method}-${ep.endpoint}`} className="hover:bg-surface-background/30 transition-colors">
                   <td className="px-4 py-3"><span className="font-mono-data text-[10px] font-bold px-1.5 py-0.5 rounded border bg-primary/10 text-primary border-primary/20">{ep.method}</span></td>
                   <td className="px-4 py-3 font-mono-data text-xs text-text-primary truncate max-w-[200px]">{ep.endpoint}</td>
                   <td className="px-4 py-3 text-right font-mono-data text-text-primary">{formatNumber(ep.totalHits)}</td>
                   <td className="px-4 py-3 text-right font-mono-data text-text-secondary">{ep.avgLatency}ms</td>
-                  <td className="px-4 py-3 text-right font-mono-data text-text-secondary">{parseFloat(ep.errorRate).toFixed(2)}%</td>
+                  <td className="px-4 py-3 text-right font-mono-data text-text-secondary">{Number.parseFloat(ep.errorRate).toFixed(2)}%</td>
                 </tr>
               ))}
             </tbody>
@@ -205,13 +209,13 @@ const ApiKeysTab: React.FC<{ clientId: string }> = ({ clientId }) => {
       {newKey && <NewKeyBanner keyValue={newKey.keyValue} onDismiss={() => setNewKey(null)} />}
 
       <div className="flex justify-between items-center mb-4">
-        <p className="text-sm text-text-secondary">{keys.length} key{keys.length !== 1 ? 's' : ''} configured</p>
+        <p className="text-sm text-text-secondary">{keys.length} key{keys.length === 1 ? '' : 's'} configured</p>
         <button id="generate-api-key-btn" onClick={() => setModalOpen(true)} className="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-on-primary bg-primary rounded hover:opacity-90 transition-opacity">
           <span className="material-symbols-outlined text-[16px]">add</span>Generate Key
         </button>
       </div>
 
-      {isLoading && <div className="space-y-3">{Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-16 w-full" />)}</div>}
+      {isLoading && <div className="space-y-3">{Array.from({ length: 3 }).map((_, i) => <Skeleton key={`skel-k-${i}`} className="h-16 w-full" />)}</div>}
       {isError && <div className="p-4 text-status-error text-sm flex items-center gap-2"><span className="material-symbols-outlined">error</span>Failed to load API keys.</div>}
 
       {!isLoading && !isError && keys.length === 0 && (
@@ -250,9 +254,9 @@ const ApiKeysTab: React.FC<{ clientId: string }> = ({ clientId }) => {
 // ── Integration Tab ─────────────────────────────────────────────────────────
 const IntegrationTab: React.FC<{ clientId: string }> = ({ clientId }) => {
   const [copied, setCopied] = useState(false);
-  const snippet = `curl -X POST https://your-server/api/hit \\
-  -H "x-api-key: YOUR_API_KEY" \\
-  -H "Content-Type: application/json" \\
+  const snippet = String.raw`curl -X POST https://your-server/api/hit \
+  -H "x-api-key: YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
   -d '{
     "serviceName": "my-service",
     "endpoint": "/api/v1/users",
@@ -332,14 +336,14 @@ const ClientDetails: React.FC = () => {
 
       {/* Tabs */}
       <div className="border-b border-surface-border mb-6">
-        <nav className="-mb-px flex space-x-8" role="tablist">
+        <div className="-mb-px flex space-x-8" role="tablist">
           {TABS.map(({ key, label }) => (
             <button key={key} role="tab" aria-selected={tab === key} onClick={() => setTab(key)} type="button"
               className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm bg-transparent cursor-pointer transition-colors ${tab === key ? 'border-blue-500 text-blue-500' : 'border-transparent text-text-secondary hover:text-text-primary hover:border-surface-border'}`}>
               {label}
             </button>
           ))}
-        </nav>
+        </div>
       </div>
 
       {/* Tab content */}

@@ -12,7 +12,7 @@
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { getDashboard } from '../services/analyticsService';
-import type { DashboardData, TimeSeriesPoint } from '../services/analyticsService';
+import type { DashboardData, TimeSeriesPoint, OverallStats } from '../services/analyticsService';
 import { useAuth } from '../context/AuthContext';
 
 // ── Helpers ────────────────────────────────────────────────────────────────
@@ -34,13 +34,13 @@ const METHOD_COLORS: Record<string, string> = {
 };
 
 function errorRateColor(rate: string | number) {
-  const r = parseFloat(String(rate));
+  const r = Number.parseFloat(String(rate));
   if (r < 1) return 'text-status-success';
   if (r < 5) return 'text-status-warning';
   return 'text-status-error';
 }
 function errorRateBg(rate: string | number) {
-  const r = parseFloat(String(rate));
+  const r = Number.parseFloat(String(rate));
   if (r < 1) return 'bg-status-success';
   if (r < 5) return 'bg-status-warning';
   return 'bg-status-error';
@@ -129,6 +129,73 @@ const TrafficChart: React.FC<{ series: TimeSeriesPoint[] }> = ({ series }) => {
   );
 };
 
+// ── Quick Stats Panel ──────────────────────────────────────────────────────
+const QuickStatsPanel: React.FC<{ isLoading: boolean; stats: OverallStats | null | undefined }> = ({ isLoading, stats }) => {
+  if (isLoading) {
+    return (
+      <div className="bg-surface-card border border-surface-border rounded-xl p-6 flex flex-col gap-4">
+        <h3 className="font-headline-md text-[18px] text-text-primary">Aggregate Stats</h3>
+        {Array.from({ length: 3 }).map((_, i) => <Skeleton key={`skel-q-${i}`} className="h-16 w-full" />)}
+      </div>
+    );
+  }
+
+  if (!stats) {
+    return (
+      <div className="bg-surface-card border border-surface-border rounded-xl p-6 flex flex-col gap-4">
+        <h3 className="font-headline-md text-[18px] text-text-primary">Aggregate Stats</h3>
+        <p className="text-text-secondary text-sm">No data available.</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="bg-surface-card border border-surface-border rounded-xl p-6 flex flex-col gap-4">
+      <h3 className="font-headline-md text-[18px] text-text-primary">Aggregate Stats</h3>
+      <div className="p-3 rounded-lg border border-surface-border bg-surface-background flex items-center justify-between">
+        <div>
+          <p className="text-xs text-text-secondary mb-1">Unique Services</p>
+          <p className="text-xl font-bold text-text-primary">{stats.uniqueServices}</p>
+        </div>
+        <span className="material-symbols-outlined text-primary text-[24px]">hub</span>
+      </div>
+      <div className="p-3 rounded-lg border border-surface-border bg-surface-background flex items-center justify-between">
+        <div>
+          <p className="text-xs text-text-secondary mb-1">Unique Endpoints</p>
+          <p className="text-xl font-bold text-text-primary">{stats.uniqueEndpoints}</p>
+        </div>
+        <span className="material-symbols-outlined text-data-latency text-[24px]">api</span>
+      </div>
+      <div className="p-3 rounded-lg border border-surface-border bg-surface-background flex items-center justify-between">
+        <div>
+          <p className="text-xs text-text-secondary mb-1">Success Hits</p>
+          <p className="text-xl font-bold text-status-success">{formatNumber(stats.successHits)}</p>
+        </div>
+        <span className="material-symbols-outlined text-status-success text-[24px]">check_circle</span>
+      </div>
+
+      {/* Quick Diagnostic */}
+      <div className="mt-auto pt-4 border-t border-surface-border">
+        <div className="flex justify-between items-center mb-2">
+          <span className="text-xs font-label-caps text-text-secondary uppercase">Quick Diagnostic</span>
+          <button
+            className="text-text-secondary hover:text-white transition-colors"
+            title="Copy to clipboard"
+            onClick={() => navigator.clipboard.writeText('curl -I -X GET "http://localhost:5000/health"')}
+          >
+            <span className="material-symbols-outlined text-[14px]">content_copy</span>
+          </button>
+        </div>
+        <div className="bg-surface-background border border-surface-border rounded p-2 overflow-x-auto">
+          <code className="font-mono-data text-[11px] text-primary whitespace-nowrap">
+            curl -I -X GET &quot;http://localhost:5000/health&quot;
+          </code>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 // ── Main Dashboard component ───────────────────────────────────────────────
 
 const Dashboard: React.FC = () => {
@@ -145,8 +212,14 @@ const Dashboard: React.FC = () => {
   const timeSeries = data?.recentActitivy ?? [];
 
   const successRate = stats
-    ? parseFloat((100 - stats.errorRate).toFixed(2))
+    ? Number.parseFloat((100 - stats.errorRate).toFixed(2))
     : null;
+
+  let errorRateColorClass = 'text-status-success';
+  if (stats) {
+    if (stats.errorRate > 5) errorRateColorClass = 'text-status-error';
+    else if (stats.errorRate > 1) errorRateColorClass = 'text-status-warning';
+  }
 
   return (
     <div className="max-w-[1600px] mx-auto">
@@ -249,7 +322,7 @@ const Dashboard: React.FC = () => {
               <><Skeleton className="h-9 w-20 mb-2" /><Skeleton className="h-4 w-24" /></>
             ) : (
               <>
-                <div className={`font-display-lg text-[36px] font-bold leading-none tracking-tight flex items-baseline gap-1 ${stats && stats.errorRate > 5 ? 'text-status-error' : stats && stats.errorRate > 1 ? 'text-status-warning' : 'text-status-success'}`}>
+                <div className={`font-display-lg text-[36px] font-bold leading-none tracking-tight flex items-baseline gap-1 ${errorRateColorClass}`}>
                   {stats ? stats.errorRate.toFixed(2) : '—'}
                   <span className="text-lg font-medium">%</span>
                 </div>
@@ -274,7 +347,7 @@ const Dashboard: React.FC = () => {
             ) : (
               <>
                 <div className="font-display-lg text-[36px] font-bold text-text-primary leading-none tracking-tight flex items-baseline gap-1">
-                  {successRate !== null ? successRate.toFixed(2) : '—'}
+                  {successRate === null ? '—' : successRate.toFixed(2)}
                   <span className="text-lg font-medium text-text-secondary">%</span>
                 </div>
                 <div className="w-full bg-surface-background h-1.5 rounded-full mt-3 overflow-hidden border border-surface-border">
@@ -305,58 +378,7 @@ const Dashboard: React.FC = () => {
         </div>
 
         {/* Quick Stats panel */}
-        <div className="bg-surface-card border border-surface-border rounded-xl p-6 flex flex-col gap-4">
-          <h3 className="font-headline-md text-[18px] text-text-primary">Aggregate Stats</h3>
-
-          {isLoading ? (
-            Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-16 w-full" />)
-          ) : stats ? (
-            <>
-              <div className="p-3 rounded-lg border border-surface-border bg-surface-background flex items-center justify-between">
-                <div>
-                  <p className="text-xs text-text-secondary mb-1">Unique Services</p>
-                  <p className="text-xl font-bold text-text-primary">{stats.uniqueServices}</p>
-                </div>
-                <span className="material-symbols-outlined text-primary text-[24px]">hub</span>
-              </div>
-              <div className="p-3 rounded-lg border border-surface-border bg-surface-background flex items-center justify-between">
-                <div>
-                  <p className="text-xs text-text-secondary mb-1">Unique Endpoints</p>
-                  <p className="text-xl font-bold text-text-primary">{stats.uniqueEndpoints}</p>
-                </div>
-                <span className="material-symbols-outlined text-data-latency text-[24px]">api</span>
-              </div>
-              <div className="p-3 rounded-lg border border-surface-border bg-surface-background flex items-center justify-between">
-                <div>
-                  <p className="text-xs text-text-secondary mb-1">Success Hits</p>
-                  <p className="text-xl font-bold text-status-success">{formatNumber(stats.successHits)}</p>
-                </div>
-                <span className="material-symbols-outlined text-status-success text-[24px]">check_circle</span>
-              </div>
-
-              {/* Quick Diagnostic */}
-              <div className="mt-auto pt-4 border-t border-surface-border">
-                <div className="flex justify-between items-center mb-2">
-                  <span className="text-xs font-label-caps text-text-secondary uppercase">Quick Diagnostic</span>
-                  <button
-                    className="text-text-secondary hover:text-white transition-colors"
-                    title="Copy to clipboard"
-                    onClick={() => navigator.clipboard.writeText('curl -I -X GET "http://localhost:5000/health"')}
-                  >
-                    <span className="material-symbols-outlined text-[14px]">content_copy</span>
-                  </button>
-                </div>
-                <div className="bg-surface-background border border-surface-border rounded p-2 overflow-x-auto">
-                  <code className="font-mono-data text-[11px] text-primary whitespace-nowrap">
-                    curl -I -X GET &quot;http://localhost:5000/health&quot;
-                  </code>
-                </div>
-              </div>
-            </>
-          ) : (
-            <p className="text-text-secondary text-sm">No data available.</p>
-          )}
-        </div>
+        <QuickStatsPanel isLoading={isLoading} stats={stats} />
       </div>
 
       {/* ── Top Endpoints Table ── */}
@@ -366,16 +388,18 @@ const Dashboard: React.FC = () => {
           <span className="text-xs text-text-secondary font-mono-data">{topEndpoints.length} endpoints</span>
         </div>
 
-        {isLoading ? (
+        {isLoading && (
           <div className="p-6 space-y-3">
-            {Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-10 w-full" />)}
+            {Array.from({ length: 5 }).map((_, i) => <Skeleton key={`skel-ep-${i}`} className="h-10 w-full" />)}
           </div>
-        ) : topEndpoints.length === 0 ? (
+        )}
+        {!isLoading && topEndpoints.length === 0 && (
           <div className="p-10 flex flex-col items-center gap-3 text-text-secondary">
             <span className="material-symbols-outlined text-[40px] opacity-40">search_off</span>
             <p className="text-sm">No endpoint data for this period.</p>
           </div>
-        ) : (
+        )}
+        {!isLoading && topEndpoints.length > 0 && (
           <div className="overflow-x-auto w-full">
             <table className="w-full text-left text-sm whitespace-nowrap">
               <thead className="bg-surface-background/50 border-b border-surface-border text-xs uppercase font-label-caps text-text-secondary">
@@ -389,8 +413,8 @@ const Dashboard: React.FC = () => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-surface-border">
-                {topEndpoints.map((ep, idx) => (
-                  <tr key={idx} className="hover:bg-surface-background/40 transition-colors group">
+                {topEndpoints.map((ep) => (
+                  <tr key={`${ep.method}-${ep.endpoint}`} className="hover:bg-surface-background/40 transition-colors group">
                     <td className="px-5 py-3">
                       <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-mono-data font-bold border ${METHOD_COLORS[ep.method] ?? 'bg-surface-border/20 text-text-secondary border-surface-border/30'}`}>
                         {ep.method}
@@ -411,12 +435,12 @@ const Dashboard: React.FC = () => {
                     <td className="px-5 py-3 text-right">
                       <div className="flex items-center justify-end gap-2">
                         <span className={`font-mono-data ${errorRateColor(ep.errorRate)}`}>
-                          {parseFloat(ep.errorRate).toFixed(2)}%
+                          {Number.parseFloat(ep.errorRate).toFixed(2)}%
                         </span>
                         <div className="w-16 h-1 bg-surface-background rounded-full overflow-hidden">
                           <div
                             className={`h-full rounded-full ${errorRateBg(ep.errorRate)}`}
-                            style={{ width: `${Math.min(parseFloat(ep.errorRate) * 10, 100)}%` }}
+                            style={{ width: `${Math.min(Number.parseFloat(ep.errorRate) * 10, 100)}%` }}
                           />
                         </div>
                       </div>

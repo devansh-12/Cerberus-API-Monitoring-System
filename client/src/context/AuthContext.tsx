@@ -5,7 +5,7 @@
  * server-side HttpOnly cookie.  All child components can read `user` and call
  * `logout()` without any prop-drilling.
  */
-import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
+import React, { createContext, useContext, useEffect, useState, useCallback, useMemo } from 'react';
 import { getProfile, logout as apiLogout, login as apiLogin } from '../services/authService';
 import type { LoginPayload, UserProfile } from '../services/authService';
 
@@ -47,14 +47,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       await apiLogout();
     } finally {
       setUser(null);
-      window.location.href = '/login';
+      globalThis.location.href = '/login';
     }
   }, []);
 
   const isSuperAdmin = user?.role === 'super_admin';
 
+  const contextValue = useMemo(() => ({
+    user,
+    isLoading,
+    isSuperAdmin,
+    login,
+    logout
+  }), [user, isLoading, isSuperAdmin, login, logout]);
+
   return (
-    <AuthContext.Provider value={{ user, isLoading, isSuperAdmin, login, logout }}>
+    <AuthContext.Provider value={contextValue}>
       {children}
     </AuthContext.Provider>
   );
