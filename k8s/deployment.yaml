@@ -1,0 +1,39 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cerberus-api
+  labels:
+    app: cerberus-api
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: cerberus-api
+  template:
+    metadata:
+      labels:
+        app: cerberus-api
+    spec:
+      automountServiceAccountToken: false
+      containers:
+      - name: cerberus-api
+        image: cerberus-api:1.0.0
+        ports:
+        - containerPort: 3000
+        env:
+        - name: PORT
+          value: "3000"
+        - name: REDIS_URL
+          value: "redis://cerberus-redis:6379"
+        - name: REDIS_CACHE_TTL_VALID
+          value: "300"
+        - name: REDIS_CACHE_TTL_INVALID
+          value: "60"
+        resources:
+          requests:
+            cpu: "100m"
+            memory: "128Mi"
+            storage: "1Gi"
+          limits:
+            cpu: "500m"
+            memory: "256Mi"

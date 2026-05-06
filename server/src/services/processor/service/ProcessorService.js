@@ -74,28 +74,40 @@ export class ProcessorService {
 
     async _updateMetricsWithFallback(eventData) {
         try {
-            // Calc. time bucket
-            const timeBucket = this.getTimeBucket(eventData.timestamp, "hour") // [12:00-12:59] [1:00 - 1:59]
+            const timeBucket = this.getTimeBucket(eventData.timestamp, "hour");
+            const statusCode = eventData.statusCode || 0;
 
-            // data prep. karege
             const metricsData = {
-                clientId: eventData.clientId.toString(),
-                serviceName: eventData.serviceName,
-                endpoint: eventData.endpoint,
-                method: eventData.method,
-                totalHits: 1,
-                errorHits: eventData.statusCode >= 400 ? 1 : 0,
-                avgLatency: eventData.latencyMs,
-                minLatency: eventData.latencyMs,
-                maxLatency: eventData.latencyMs,
+                clientId:      eventData.clientId.toString(),
+                serviceName:   eventData.serviceName,
+                endpoint:      eventData.endpoint,
+                method:        eventData.method,
                 timeBucket,
+
+                // ── Existing latency metrics ──────────────────────────────────
+                totalHits:     1,
+                errorHits:     statusCode >= 400 ? 1 : 0,
+                avgLatency:    eventData.latencyMs,
+                minLatency:    eventData.latencyMs,
+                maxLatency:    eventData.latencyMs,
+
+                // ── Granular status code counters (new) ───────────────────────
+                hits2xx:       statusCode >= 200 && statusCode < 300 ? 1 : 0,
+                hits3xx:       statusCode >= 300 && statusCode < 400 ? 1 : 0,
+                hits4xx:       statusCode >= 400 && statusCode < 500 ? 1 : 0,
+                hits5xx:       statusCode >= 500                     ? 1 : 0,
+                rateLimitHits: statusCode === 429                    ? 1 : 0,
+
+                // ── Payload size metrics (new) ────────────────────────────────
+                // Clients must include requestBytes / responseBytes in the hit payload.
+                // Defaults to 0 if not provided so existing clients don't break.
+                reqBytesTotal: eventData.requestBytes  || 0,
+                resBytesTotal: eventData.responseBytes || 0,
             };
 
             await this.metricsRepository.upsertEndpointMetrics(metricsData);
 
-            logger.info('Metrics updated successfully', {
-                eventId: eventData.eventId,
-            });
+            logger.info('Metrics updated successfully', { eventId: eventData.eventId });
         } catch (error) {
             throw error;
         }
