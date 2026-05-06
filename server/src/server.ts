@@ -17,6 +17,10 @@ import redis from './shared/config/redis.js';
 import authRouter from './services/auth/routes/authRouter.js';
 // @ts-ignore
 import clientRouter from './services/client/routes/clientRoutes.js';
+// @ts-ignore
+import analyticsRouter from './services/analytics/routes/analyticsRoutes.js';
+// @ts-ignore
+import ingestRouter from './services/ingest/routes/ingestRoutes.js';
 
 /**
  * Initialize Express app
@@ -50,6 +54,8 @@ app.use((req: Request, _res: Response, next: NextFunction) => {
  */
 app.use('/api/auth', authRouter);
 app.use('/api/client', clientRouter);
+app.use('/api/analytics', analyticsRouter);
+app.use('/api/hit', ingestRouter);
 
 /**
  * Health check endpoint

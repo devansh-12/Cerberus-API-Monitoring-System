@@ -1,6 +1,7 @@
 import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 
+import ProtectedRoute from './components/ProtectedRoute';
 import AppLayout from './components/AppLayout';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
@@ -13,12 +14,14 @@ const App: React.FC = () => {
       <Routes>
         <Route path="/login" element={<Login />} />
 
-        <Route element={<AppLayout />}>
-          <Route path="/" element={<Dashboard />} />
-          <Route path="/clients" element={<ClientsDirectory />} />
-          <Route path="/clients/:id" element={<ClientDetails />} />
-          {/* Catch-all route to fallback to dashboard for other nav links currently unimplemented */}
-          <Route path="*" element={<Navigate to="/" replace />} />
+        {/* All app routes require authentication */}
+        <Route element={<ProtectedRoute />}>
+          <Route element={<AppLayout />}>
+            <Route path="/" element={<Dashboard />} />
+            <Route path="/clients" element={<ClientsDirectory />} />
+            <Route path="/clients/:id" element={<ClientDetails />} />
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Route>
         </Route>
       </Routes>
     </BrowserRouter>
@@ -26,3 +29,4 @@ const App: React.FC = () => {
 }
 
 export default App;
+

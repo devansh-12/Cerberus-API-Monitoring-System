@@ -1,4 +1,6 @@
 import ResponseFormatter from "../../../shared/utils/responseFormatter.js";
+import AppError from "../../../shared/utils/AppError.js";
+import { APPLICATION_ROLES } from "../../../shared/constants/roles.js";
 
 /**
  * @description ClientController handles client management operations such as
@@ -87,6 +89,38 @@ export class ClientController {
 
             const apiKeys = await this.clientService.getClientApiKeys(clientId, user);
             res.status(200).json(ResponseFormatter.success(apiKeys, "API keys fetched successfully", 200));
+        } catch (error) {
+            next(error);
+        }
+    }
+
+    /**
+     * Lists all clients. Super Admin only.
+     */
+    async listClients(req, res, next) {
+        try {
+            if (req.user.role !== APPLICATION_ROLES.SUPER_ADMIN) {
+                throw new AppError("Access denied — Super Admin only", 403);
+            }
+            const clients = await this.clientService.clientRepository.find({}, { limit: 100 });
+            res.status(200).json(ResponseFormatter.success(clients, "Clients fetched successfully", 200));
+        } catch (error) {
+            next(error);
+        }
+    }
+
+    /**
+     * Get a single client by ID. Super Admin or own client.
+     */
+    async getClientById(req, res, next) {
+        try {
+            const { clientId } = req.params;
+            if (req.user.role !== APPLICATION_ROLES.SUPER_ADMIN && req.user.clientId?.toString() !== clientId) {
+                throw new AppError("Access denied", 403);
+            }
+            const client = await this.clientService.clientRepository.findById(clientId);
+            if (!client) throw new AppError("Client not found", 404);
+            res.status(200).json(ResponseFormatter.success(client, "Client fetched successfully", 200));
         } catch (error) {
             next(error);
         }
