@@ -1,39 +1,87 @@
+# ── API Server Deployment ─────────────────────────────────────────────────────
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: cerberus-api
+  namespace: cerberus
   labels:
     app: cerberus-api
+    component: api-server
+    version: "1.0.0"
 spec:
   replicas: 2
   selector:
     matchLabels:
       app: cerberus-api
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
   template:
     metadata:
       labels:
         app: cerberus-api
+        component: api-server
     spec:
       automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1001
+        runAsGroup: 1001
+      terminationGracePeriodSeconds: 30
       containers:
-      - name: cerberus-api
-        image: cerberus-api:1.0.0
-        ports:
-        - containerPort: 3000
-        env:
-        - name: PORT
-          value: "3000"
-        - name: REDIS_URL
-          value: "redis://cerberus-redis:6379"
-        - name: REDIS_CACHE_TTL_VALID
-          value: "300"
-        - name: REDIS_CACHE_TTL_INVALID
-          value: "60"
-        resources:
-          requests:
-            cpu: "100m"
-            memory: "128Mi"
-            storage: "1Gi"
-          limits:
-            cpu: "500m"
-            memory: "256Mi"
+        - name: cerberus-api
+          image: cerberus-api:1.0.0
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 5000
+              name: http
+          envFrom:
+            - configMapRef:
+                name: cerberus-api-config
+            - secretRef:
+                name: cerberus-api-secret
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
+            limits:
+              cpu: "500m"
+              memory: "256Mi"
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 5000
+            initialDelaySeconds: 20
+            periodSeconds: 15
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 5000
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          lifecycle:
+            preStop:
+              exec:
+                command: ["/bin/sh", "-c", "sleep 5"]
+
+---
+# ── API Server ClusterIP Service ──────────────────────────────────────────────
+apiVersion: v1
+kind: Service
+metadata:
+  name: cerberus-api-service
+  namespace: cerberus
+  labels:
+    app: cerberus-api
+    component: api-server
+spec:
+  selector:
+    app: cerberus-api
+  ports:
+    - port: 5000
+      targetPort: 5000
+      name: http
+  type: ClusterIP
