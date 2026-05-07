@@ -6,8 +6,8 @@ WORKDIR /app
 # Copy package files
 COPY package*.json ./
 
-# Install dependencies
-RUN npm install --production
+# Install dependencies (including devDependencies for tsx)
+RUN npm install
 
 # Copy application code
 COPY . .
@@ -15,5 +15,5 @@ COPY . .
 # Create logs directory
 RUN mkdir -p logs
 
-# Start the consumer (correct path)
-CMD ["node", "src/services/processor/consumer.js"]
+# Start the consumer with TypeScript support
+CMD ["npx", "tsx", "src/services/processor/consumer.js"]

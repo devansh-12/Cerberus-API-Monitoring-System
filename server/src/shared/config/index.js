@@ -51,7 +51,8 @@ const raw = _env.data;
 export const config = {
   ...raw,
   cookie: { httpOnly: raw.COOKIE_HTTP_ONLY, secure: raw.COOKIE_SECURE, expiresIn: raw.COOKIE_EXPIRES_IN },
-  jwt: { secret: raw.JWT_SECRET, expiresIn: raw.JWT_EXPIRES_IN }
+  jwt: { secret: raw.JWT_SECRET, expiresIn: raw.JWT_EXPIRES_IN },
+  rabbitmq: { url: raw.RABBITMQ_URL, queue: raw.RABBITMQ_QUEUE, retryAttempts: 3 }
 };
 
 export default config;

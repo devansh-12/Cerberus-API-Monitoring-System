@@ -1,72 +1,49 @@
-import pg from "pg"
-import config from "./index.js"
-import logger from "./logger.js"
+import logger from "../../../shared/config/logger.js"
+import AppError from "../../../shared/utils/AppError.js"
+import { EVENT_TYPES } from "../../../shared/events/eventContracts.js"
 
-const { Pool } = pg;
-
-class PostgresConnection {
-    constructor() {
-        this.pool = null;
+/**
+ * Service class responsible for handling API hit ingestion.
+ * Publishes API hit events to RabbitMQ for async processing.
+ */
+export class IngestService {
+    constructor({ eventProducer }) {
+        if (!eventProducer) throw new Error("IngestService requires eventProducer");
+        this.eventProducer = eventProducer;
     }
 
-    getPool() {
-        if (!this.pool) {
-            this.pool = new Pool({
-                host: config.postgres.host,
-                port: config.postgres.port,
-                database: config.postgres.database,
-                user: config.postgres.user,
-                password: config.postgres.password,
-                max: 20,
-                idleTimeoutMillis: 30000,
-                connectionTimeoutMillis: 2000,
-            })
-
-            this.pool.on("error", err => {
-                logger.error("Unexpected error on idle PG client", err)
-            })
-
-            logger.info("PG Pool Created")
-        }
-        return this.pool;
-    }
-
-    async testConnection() {
+    /**
+     * Ingests an API hit by publishing it as an event to the message queue.
+     * @param {Object} hitData - The API hit data to be ingested.
+     * @returns {Object} - Result of the ingestion with status and event ID.
+     */
+    async ingestApiHit(hitData) {
         try {
-            const pool = this.getPool();
-            const client = await pool.connect();
-            const result = await client.query("SELECT NOW()")
-            client.release();
+            logger.info('IngestService: Processing API hit', {
+                clientId: hitData.clientId,
+                endpoint: hitData.endpoint,
+                method: hitData.method
+            });
 
-            logger.info(`PG connected successfully at ${result.rows[0].now}`)
-        } catch (error) {
-            logger.error("Failed to connect to PG", error)
-            throw error
-        }
-    }
+            const eventData = {
+                ...hitData,
+                timestamp: new Date().toISOString()
+            };
 
-    async query(text, params) {
-        const pool = this.getPool()
-        const start = Date.now();
-        try {
-            const result = await pool.query(text, params);
-            const duration = Date.now() - start
-            logger.debug('Executed query', { text, duration, rows: result.rowCount });
+            const result = await this.eventProducer.publish(EVENT_TYPES.API_HIT, eventData);
+
+            logger.info('IngestService: API hit published successfully', {
+                eventId: result.eventId,
+                clientId: hitData.clientId
+            });
+
             return result;
-        }
-        catch (error) {
-            logger.error('Query error:', { text, error: error.message });
+        } catch (error) {
+            logger.error('IngestService: Failed to ingest API hit', {
+                error: error.message,
+                clientId: hitData.clientId
+            });
             throw error;
         }
     }
-
-    async close() {
-        if (this.pool) {
-            await this.pool.end();
-            this.pool = null;
-            logger.info("PG pool closed!")
-        }
-    }
 }
-
-export default new PostgresConnection()

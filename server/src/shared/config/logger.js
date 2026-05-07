@@ -22,13 +22,14 @@ const logger = winston.createLogger({
 
 })
 
-if (config.NODE_ENV !== 'production') {
-    logger.add(new winston.transports.Console({
-        format: winston.format.combine(
-            winston.format.colorize(),
-            winston.format.simple()
-        )
-    }))
-}
+// Always add console transport for Docker/container visibility
+logger.add(new winston.transports.Console({
+    format: winston.format.combine(
+        config.NODE_ENV !== 'production' 
+            ? winston.format.colorize()
+            : winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }),
+        winston.format.simple()
+    )
+}))
 
 export default logger;

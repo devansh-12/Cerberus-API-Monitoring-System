@@ -40,9 +40,11 @@ spec:
             requests:
               cpu: "100m"
               memory: "128Mi"
+              ephemeral-storage: "50Mi"
             limits:
               cpu: "300m"
               memory: "256Mi"
+              ephemeral-storage: "100Mi"
           livenessProbe:
             exec:
               command: ["node", "-e", "process.exit(0)"]

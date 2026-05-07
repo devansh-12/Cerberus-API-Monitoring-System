@@ -6,8 +6,8 @@ import config from '../../shared/config/index.js';
 import logger from '../../shared/config/logger.js';
 import processorContainer from './Dependencies/dependencies.js';
 import { EVENT_TYPES } from '../../shared/events/eventContracts.js';
-import { RetryStrategy, isRetryable } from '../../shared/events/producer/RetryStrategy.js';
-import { CircuitBreaker } from '../../shared/events/producer/CircuitBreaker.js';
+import { RetryStrategy, isRetryable } from '../../shared/events/producers/RetryStrategy.js';
+import { CircuitBreaker } from '../../shared/events/producers/CircuitBreaker.js';
 
 const messageSchema = z.object({
     type: z.enum([EVENT_TYPES.API_HIT]),
