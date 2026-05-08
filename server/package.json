@@ -10,7 +10,12 @@
     "processor": "node src/modules/ingest/consumer.js",
     "init": "node init-system.js",
     "init:env": "node init-system.js --generate-env",
-    "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js"
+    "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js",
+    "seed": "node scripts/seed-databases.js",
+    "seed:clean": "node scripts/seed-databases.js --clean",
+    "seed:large": "node scripts/seed-databases.js --clients 5 --hits 2000",
+    "seed:help": "node scripts/seed-databases.js --help",
+    "seed:validate": "node scripts/validate-seed.js"
   },
   "keywords": [
     "api",

@@ -11,7 +11,7 @@ services:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./server/scripts/init-postgres.sql:/docker-entrypoint-initdb.d/init-postgres.sql
+      - ./scripts/init-postgres.sql:/docker-entrypoint-initdb.d/init-postgres.sql
     networks:
       - api-monitoring-network
     restart: unless-stopped

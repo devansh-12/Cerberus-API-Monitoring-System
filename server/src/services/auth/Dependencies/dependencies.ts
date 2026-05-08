@@ -1,0 +1,35 @@
+import { AuthController } from '../controllers/authController.js';
+import { AuthService } from '../services/authService.js';
+import MongoUserRepository from '../repositories/UserRepository.js';
+
+/**
+ * Dependency Injection Container for the Auth module.
+ */
+class Container {
+  static init() {
+    // Initialize repositories
+    const repositories = {
+      userRepository: MongoUserRepository,
+    };
+
+    // Initialize services with their respective repositories
+    const services = {
+      authService: new AuthService(repositories.userRepository),
+    };
+
+    // Initialize controllers with their respective services
+    const controller = {
+      authController: new AuthController(services.authService),
+    };
+
+    return {
+      repositories,
+      services,
+      controller,
+    };
+  }
+}
+
+const initialized = Container.init();
+export { Container };
+export default initialized;
