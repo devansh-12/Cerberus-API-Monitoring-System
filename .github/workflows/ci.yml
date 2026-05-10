@@ -32,15 +32,19 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node-version }}
-          cache: npm
+          cache: ''
 
       - name: Install server dependencies
         working-directory: server
         run: npm ci
+        env:
+          npm_config_cache: ${{ github.workspace }}/server/.npm
 
       - name: Install client dependencies
         working-directory: client
         run: npm ci
+        env:
+          npm_config_cache: ${{ github.workspace }}/client/.npm
 
       - name: Lint server code (ESLint)
         working-directory: server

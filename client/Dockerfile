@@ -3,6 +3,9 @@ FROM node:20-alpine AS builder
 
 WORKDIR /app
 
+# Update packages to patch known vulnerabilities
+RUN apk update && apk upgrade --no-cache
+
 # Copy package files first for better layer caching
 COPY package*.json ./
 
@@ -16,6 +19,9 @@ RUN npm run build
 
 # ── Stage 2: Serve via Nginx ──────────────────────────────────────────────────
 FROM nginx:1.27-alpine AS runner
+
+# Update packages to patch known vulnerabilities
+RUN apk update && apk upgrade --no-cache
 
 # Remove default nginx config
 RUN rm /etc/nginx/conf.d/default.conf

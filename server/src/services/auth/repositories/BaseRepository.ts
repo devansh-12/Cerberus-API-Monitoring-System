@@ -1,7 +1,7 @@
 import { Model, Document } from 'mongoose';
 
 export default class BaseRepository<T extends Document> {
-  protected model: Model<T>;
+  public readonly model: Model<T>;
 
   constructor(model: Model<T>) {
     this.model = model;

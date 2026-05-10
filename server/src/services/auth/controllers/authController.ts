@@ -27,7 +27,7 @@ export class AuthController {
         username,
         email,
         password,
-        role: 'super_admin',
+        role: 'super_admin' as const,
       };
 
       const { token, user } = await this.authService.onboardSuperAdmin(superAdminData);
