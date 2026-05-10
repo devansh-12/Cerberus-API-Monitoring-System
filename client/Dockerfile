@@ -8,7 +8,7 @@ COPY package*.json ./
 
 RUN npm ci --include=dev
 
-# Copy application source
+# Copy application source (excluding sensitive files via .dockerignore)
 COPY . .
 
 # Build production bundle

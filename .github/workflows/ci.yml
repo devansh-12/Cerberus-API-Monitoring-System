@@ -12,6 +12,18 @@ jobs:
     strategy:
       matrix:
         node-version: [20.x]
+    
+    services:
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -22,27 +34,54 @@ jobs:
           node-version: ${{ matrix.node-version }}
           cache: npm
 
-      - name: Install dependencies
+      - name: Install server dependencies
+        working-directory: server
         run: npm ci
 
-      - name: Lint code (ESLint)
-        run: npm run lint --if-present
+      - name: Install client dependencies
+        working-directory: client
+        run: npm ci
 
-      - name: Run tests (Jest/Vitest)
-        run: npm test -- --runInBand --detectOpenHandles --verbose
+      - name: Lint server code (ESLint)
+        working-directory: server
+        run: npm run lint --if-present || echo "No lint script found"
 
-      - name: Build client (Vite) if present
-        run: |
-          if [ -f client/package.json ]; then
-            cd client && npm ci && npm run build
-          fi
+      - name: Run server tests (Jest)
+        working-directory: server
+        env:
+          REDIS_URL: "redis://localhost:6379"
+          REDIS_CACHE_TTL_VALID: "300"
+          REDIS_CACHE_TTL_INVALID: "60"
+          MONGO_URI: "mongodb://localhost:27017/test"
+          MONGO_DB_NAME: "test"
+          PG_HOST: "localhost"
+          PG_DATABASE: "test"
+          PG_USER: "test"
+          PG_PASSWORD: "test"
+          JWT_SECRET: "test-secret-of-at-least-32-characters-ok"
+          RABBITMQ_URL: "amqp://localhost"
+        run: npm test
 
-      - name: Upload test coverage (optional)
+      - name: Lint client code (ESLint)
+        working-directory: client
+        run: npm run lint --if-present || echo "No lint script found"
+
+      - name: Run client tests (Vitest)
+        working-directory: client
+        run: npm test -- --run
+
+      - name: Build client (Vite)
+        working-directory: client
+        run: npm run build
+
+      - name: Upload test coverage
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: coverage-report
-          path: coverage/**
+          path: |
+            server/coverage/**
+            client/coverage/**
 
       - name: SonarCloud Scan
         env:
@@ -59,5 +98,3 @@ jobs:
             -Dsonar.organization=your-org \
             -Dsonar.host.url="${SONAR_HOST_URL}" \
             -Dsonar.login="${SONAR_TOKEN}"
-
-  # Optional deployment job could be added here

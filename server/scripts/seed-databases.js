@@ -16,6 +16,7 @@ import dotenv from 'dotenv';
 import pg from 'pg';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
+import crypto from 'node:crypto';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -79,15 +80,15 @@ import ApiHit from '../src/shared/models/ApiHits.js';
 // ─── Helper Functions ────────────────────────────────────────────────────────
 
 function getRandomItem(arr) {
-  return arr[Math.floor(Math.random() * arr.length)];
+  return arr[crypto.randomInt(0, arr.length)];
 }
 
 function getRandomInt(min, max) {
-  return Math.floor(Math.random() * (max - min + 1)) + min;
+  return crypto.randomInt(min, max + 1);
 }
 
 function getRandomFloat(min, max, decimals = 2) {
-  return Number.parseFloat((Math.random() * (max - min) + min).toFixed(decimals));
+  return Number.parseFloat((crypto.randomBytes(4).readUInt32LE() / 0xffffffff * (max - min) + min).toFixed(decimals));
 }
 
 // Fixed passwords - simple but meet all requirements (8+ chars, uppercase, lowercase, number, symbol)
@@ -99,7 +100,7 @@ function generatePassword() {
 function getRandomDate(daysBack = 30) {
   const now = new Date();
   const past = new Date(now.getTime() - daysBack * 24 * 60 * 60 * 1000);
-  return new Date(past.getTime() + Math.random() * (now.getTime() - past.getTime()));
+  return new Date(past.getTime() + crypto.randomBytes(4).readUInt32LE() / 0xffffffff * (now.getTime() - past.getTime()));
 }
 
 // Service definitions

@@ -10,8 +10,8 @@
 import mongoose from 'mongoose';
 import pg from 'pg';
 import dotenv from 'dotenv';
-import { fileURLToPath } from 'url';
-import { dirname, join } from 'path';
+import { fileURLToPath } from 'node:url';
+import { dirname, join } from 'node:path';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -71,7 +71,7 @@ async function validateMongoDB() {
       errors.push(`Invalid slug format: ${client.slug}`);
     }
 
-    // Validate email format
+    // Validate email format (safe: no nested quantifiers, no backtracking risk)
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(client.email)) {
       errors.push(`Invalid email format: ${client.email}`);
     }
@@ -151,7 +151,7 @@ async function validatePostgreSQL() {
 
   // Check endpoint_metrics
   const metricsResult = await pgPool.query('SELECT COUNT(*) FROM endpoint_metrics');
-  const metricsCount = parseInt(metricsResult.rows[0].count);
+  const metricsCount = Number.parseInt(metricsResult.rows[0].count);
   log(`Endpoint metrics: ${metricsCount}`, 'info');
 
   // Check for negative values
@@ -159,7 +159,7 @@ async function validatePostgreSQL() {
     SELECT COUNT(*) FROM endpoint_metrics 
     WHERE total_hits < 0 OR error_hits < 0 OR avg_latency < 0
   `);
-  const negativeCount = parseInt(negativeResult.rows[0].count);
+  const negativeCount = Number.parseInt(negativeResult.rows[0].count);
   if (negativeCount > 0) {
     errors.push(`${negativeCount} metric records have negative values`);
   } else {
@@ -222,7 +222,7 @@ async function validateCrossServiceConsistency(mongoData) {
 
   const pgHitsByClient = {};
   for (const row of pgResult.rows) {
-    pgHitsByClient[row.client_id] = parseInt(row.total);
+    pgHitsByClient[row.client_id] = Number.parseInt(row.total);
   }
 
   // Compare
@@ -290,7 +290,7 @@ async function main() {
     // Connect to PostgreSQL
     const pgConfig = {
       host: process.env.PG_HOST || process.env.POSTGRES_HOST || 'localhost',
-      port: parseInt(process.env.PG_PORT || process.env.POSTGRES_PORT || '5432', 10),
+      port: Number.parseInt(process.env.PG_PORT || process.env.POSTGRES_PORT || '5432', 10),
       database: process.env.PG_DATABASE || process.env.POSTGRES_DB || 'cerberus',
       user: process.env.PG_USER || process.env.POSTGRES_USER || 'postgres',
       password: process.env.PG_PASSWORD || process.env.POSTGRES_PASSWORD || 'postgres',
