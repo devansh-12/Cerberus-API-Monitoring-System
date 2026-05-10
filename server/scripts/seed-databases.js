@@ -14,9 +14,8 @@ import mongoose from 'mongoose';
 import { v4 as uuidv4 } from 'uuid';
 import dotenv from 'dotenv';
 import pg from 'pg';
-import bcrypt from 'bcryptjs';
-import { fileURLToPath } from 'url';
-import { dirname, join } from 'path';
+import { fileURLToPath } from 'node:url';
+import { dirname, join } from 'node:path';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -37,10 +36,10 @@ const config = {
 
 for (let i = 0; i < args.length; i++) {
   if (args[i] === '--clients' && args[i + 1]) {
-    config.numClients = parseInt(args[i + 1], 10);
+    config.numClients = Number.parseInt(args[i + 1], 10);
     i++;
   } else if (args[i] === '--hits' && args[i + 1]) {
-    config.numHitsPerClient = parseInt(args[i + 1], 10);
+    config.numHitsPerClient = Number.parseInt(args[i + 1], 10);
     i++;
   } else if (args[i] === '--clean') {
     config.clean = true;
@@ -88,7 +87,7 @@ function getRandomInt(min, max) {
 }
 
 function getRandomFloat(min, max, decimals = 2) {
-  return parseFloat((Math.random() * (max - min) + min).toFixed(decimals));
+  return Number.parseFloat((Math.random() * (max - min) + min).toFixed(decimals));
 }
 
 // Fixed passwords - simple but meet all requirements (8+ chars, uppercase, lowercase, number, symbol)
@@ -128,8 +127,8 @@ const USER_AGENTS = [
 ];
 
 const IPS = [
-  '192.168.1.100', '10.0.0.50', '172.16.0.25', '203.0.113.45',
-  '198.51.100.78', '192.0.2.123', '100.24.56.78', '52.14.89.123',
+  '203.0.113.45', '198.51.100.78', '192.0.2.123', '100.24.56.78',
+  '52.14.89.123', '34.120.56.78', '13.45.67.89', '104.18.23.45',
 ];
 
 // ─── Main Seeding Function ───────────────────────────────────────────────────
