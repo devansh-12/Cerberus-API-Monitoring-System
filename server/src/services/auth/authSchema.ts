@@ -1,4 +1,4 @@
-import { isValidRole } from '../../../shared/constants/roles.js';
+import { isValidRole } from '../../shared/constants/roles.js';
 
 export interface ValidationRule {
   required?: boolean;
