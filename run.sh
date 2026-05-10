@@ -67,10 +67,10 @@ check_minikube() {
 }
 
 check_compose_env() {
-  if [[ ! -f "${SCRIPT_DIR}/.env" ]]; then
-    warn ".env not found — copying from .env.example"
-    cp "${SCRIPT_DIR}/.env.example" "${SCRIPT_DIR}/.env"
-    warn "Edit ${SCRIPT_DIR}/.env with real secrets before proceeding!"
+  if [[ ! -f "${SERVER_DIR}/.env" ]]; then
+    warn ".env not found in server/ — copying from .env.example"
+    cp "${SERVER_DIR}/.env.example" "${SERVER_DIR}/.env"
+    warn "Edit ${SERVER_DIR}/.env with real secrets before proceeding!"
     read -rp "Press ENTER to continue with example values, or Ctrl+C to abort: "
   fi
 }
@@ -284,7 +284,7 @@ cmd_k8s_delete() {
 cmd_docker_down() {
   header "Stopping Docker Compose Stack"
   check_docker
-  docker compose -f "${COMPOSE_FILE}" --env-file "${SCRIPT_DIR}/.env" down --volumes --remove-orphans
+  docker compose -f "${COMPOSE_FILE}" --env-file "${SERVER_DIR}/.env" down --volumes --remove-orphans
   success "Docker Compose stack stopped and volumes removed."
 }
 
@@ -295,13 +295,13 @@ cmd_docker() {
   check_compose_env
 
   info "Pulling base images..."
-  docker compose -f "${COMPOSE_FILE}" --env-file "${SCRIPT_DIR}/.env" pull --ignore-pull-failures 2>/dev/null || true
+  docker compose -f "${COMPOSE_FILE}" --env-file "${SERVER_DIR}/.env" pull --ignore-pull-failures 2>/dev/null || true
 
   info "Building application images..."
-  docker compose -f "${COMPOSE_FILE}" --env-file "${SCRIPT_DIR}/.env" build --parallel
+  docker compose -f "${COMPOSE_FILE}" --env-file "${SERVER_DIR}/.env" build --parallel
 
   info "Starting full stack..."
-  docker compose -f "${COMPOSE_FILE}" --env-file "${SCRIPT_DIR}/.env" up -d
+  docker compose -f "${COMPOSE_FILE}" --env-file "${SERVER_DIR}/.env" up -d
 
   echo ""
   success "Stack is up! Services:"

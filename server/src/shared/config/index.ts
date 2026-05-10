@@ -31,8 +31,8 @@ const envSchema = z.object({
   RATE_LIMIT_WINDOW_MS: z.string().default('60000').transform(Number),
   RATE_LIMIT_MAX_REQUESTS: z.string().default('100').transform(Number),
 
-  COOKIE_HTTP_ONLY: z.string().transform((v) => v === 'true').default('true'),
-  COOKIE_SECURE: z.string().transform((v) => v === 'true').default('false'),
+  COOKIE_HTTP_ONLY: z.string().default('true').transform((v) => v === 'true'),
+  COOKIE_SECURE: z.string().default('false').transform((v) => v === 'true'),
   COOKIE_EXPIRES_IN: z.string().default('86400000').transform(Number),
 });
 
