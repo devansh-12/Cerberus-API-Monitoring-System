@@ -64,7 +64,7 @@ jobs:
           PG_PASSWORD: "test"
           JWT_SECRET: "test-secret-of-at-least-32-characters-ok"
           RABBITMQ_URL: "amqp://localhost"
-        run: npm test
+        run: npm test -- --forceExit
 
       - name: Lint client code (ESLint)
         working-directory: client
@@ -86,6 +86,109 @@ jobs:
           path: |
             server/coverage/**
             client/coverage/**
+
+  e2e_test:
+    runs-on: ubuntu-latest
+    needs: test
+    
+    services:
+      postgres:
+        image: timescale/timescaledb:latest-pg15
+        env:
+          POSTGRES_DB: cerberus_analytics
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres123
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+      
+      mongo:
+        image: mongo:6.0
+        ports:
+          - 27017:27017
+        options: >-
+          --health-cmd "mongosh --eval 'db.runCommand(\"ping\")'"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+      
+      rabbitmq:
+        image: rabbitmq:3-management-alpine
+        env:
+          RABBITMQ_DEFAULT_USER: admin
+          RABBITMQ_DEFAULT_PASS: rabbit123
+          RABBITMQ_DEFAULT_VHOST: api_monitoring
+        ports:
+          - 5672:5672
+        options: >-
+          --health-cmd "rabbitmq-diagnostics -q ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+      
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20.x
+
+      - name: Install server dependencies
+        working-directory: server
+        run: npm ci
+
+      - name: Install Playwright browsers
+        working-directory: server
+        run: npx playwright install --with-deps chromium
+
+      - name: Wait for services to be ready
+        run: |
+          sleep 10
+          echo "All services should be up"
+
+      - name: Run e2e tests (Playwright)
+        working-directory: server
+        env:
+          MONGO_URI: "mongodb://localhost:27017"
+          MONGO_DB_NAME: "cerberus_dev"
+          PG_HOST: "localhost"
+          PG_PORT: "5432"
+          PG_DATABASE: "cerberus_analytics"
+          PG_USER: "postgres"
+          PG_PASSWORD: "postgres123"
+          RABBITMQ_URL: "amqp://admin:rabbit123@localhost:5672/api_monitoring"
+          RABBITMQ_QUEUE: "api_hits"
+          JWT_SECRET: "test-secret-of-at-least-32-characters-ok"
+          REDIS_URL: "redis://localhost:6379"
+          REDIS_CACHE_TTL_VALID: "300"
+          REDIS_CACHE_TTL_INVALID: "60"
+        run: |
+          npm run dev &
+          sleep 5
+          npm run test:e2e
+
+      - name: Upload Playwright report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: server/playwright-report/
 
       - name: SonarCloud Scan
         env:
