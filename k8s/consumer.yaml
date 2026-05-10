@@ -1,0 +1,53 @@
+# ── Consumer (RabbitMQ Message Processor) Deployment ─────────────────────────
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cerberus-consumer
+  namespace: cerberus
+  labels:
+    app: cerberus-consumer
+    component: message-consumer
+    version: "1.0.0"
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: cerberus-consumer
+  strategy:
+    type: Recreate               # Only one consumer at a time to avoid duplicate processing
+  template:
+    metadata:
+      labels:
+        app: cerberus-consumer
+        component: message-consumer
+    spec:
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1001
+        runAsGroup: 1001
+      terminationGracePeriodSeconds: 60  # Longer grace — allow in-flight messages to drain
+      containers:
+        - name: cerberus-consumer
+          image: cerberus-consumer:1.0.0
+          imagePullPolicy: IfNotPresent
+          envFrom:
+            - configMapRef:
+                name: cerberus-api-config
+            - secretRef:
+                name: cerberus-api-secret
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
+              ephemeral-storage: "50Mi"
+            limits:
+              cpu: "300m"
+              memory: "256Mi"
+              ephemeral-storage: "100Mi"
+          livenessProbe:
+            exec:
+              command: ["node", "-e", "process.exit(0)"]
+            initialDelaySeconds: 30
+            periodSeconds: 30
+            failureThreshold: 3

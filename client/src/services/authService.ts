@@ -29,7 +29,11 @@ export interface UserProfile {
 
 /** POST /api/auth/login */
 export async function login(payload: LoginPayload): Promise<UserProfile> {
-  const res = await api.post<{ data: UserProfile }>('/auth/login', payload);
+  // API expects 'username' field, not 'email'
+  const res = await api.post<{ data: UserProfile }>('/auth/login', {
+    username: payload.email,
+    password: payload.password,
+  });
   return res.data.data;
 }
 

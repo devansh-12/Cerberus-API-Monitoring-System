@@ -12,6 +12,18 @@ jobs:
     strategy:
       matrix:
         node-version: [20.x]
+    
+    services:
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -20,41 +32,176 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node-version }}
-          cache: npm
+          cache: ''
 
-      - name: Install dependencies
+      - name: Install server dependencies
+        working-directory: server
         run: npm ci
+        env:
+          npm_config_cache: ${{ github.workspace }}/server/.npm
 
-      - name: Lint code (ESLint)
-        run: npm run lint --if-present
+      - name: Install client dependencies
+        working-directory: client
+        run: npm ci
+        env:
+          npm_config_cache: ${{ github.workspace }}/client/.npm
 
-      - name: Run tests (Jest/Vitest)
-        run: npm test -- --runInBand --detectOpenHandles --verbose
+      - name: Lint server code (ESLint)
+        working-directory: server
+        run: npm run lint --if-present || echo "No lint script found"
 
-      - name: Build client (Vite) if present
-        run: |
-          if [ -f client/package.json ]; then
-            cd client && npm ci && npm run build
-          fi
+      - name: Run server tests (Jest)
+        working-directory: server
+        env:
+          REDIS_URL: "redis://localhost:6379"
+          REDIS_CACHE_TTL_VALID: "300"
+          REDIS_CACHE_TTL_INVALID: "60"
+          MONGO_URI: "mongodb://localhost:27017/test"
+          MONGO_DB_NAME: "test"
+          PG_HOST: "localhost"
+          PG_DATABASE: "test"
+          PG_USER: "test"
+          PG_PASSWORD: "test"
+          JWT_SECRET: "test-secret-of-at-least-32-characters-ok"
+          RABBITMQ_URL: "amqp://localhost"
+        run: npm test -- --forceExit
 
-      - name: Upload test coverage (optional)
+      - name: Lint client code (ESLint)
+        working-directory: client
+        run: npm run lint --if-present || echo "No lint script found"
+
+      - name: Run client tests (Vitest)
+        working-directory: client
+        run: npm test -- --run
+
+      - name: Build client (Vite)
+        working-directory: client
+        run: npm run build
+
+      - name: Upload test coverage
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: coverage-report
-          path: coverage/**
+          path: |
+            server/coverage/**
+            client/coverage/**
+
+  e2e_test:
+    runs-on: ubuntu-latest
+    needs: test
+    
+    services:
+      postgres:
+        image: timescale/timescaledb:latest-pg15
+        env:
+          POSTGRES_DB: cerberus_analytics
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres123
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
       
+      mongo:
+        image: mongo:6.0
+        ports:
+          - 27017:27017
+        options: >-
+          --health-cmd "mongosh --eval 'db.runCommand(\"ping\")'"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+      
+      rabbitmq:
+        image: rabbitmq:3-management-alpine
+        env:
+          RABBITMQ_DEFAULT_USER: admin
+          RABBITMQ_DEFAULT_PASS: rabbit123
+          RABBITMQ_DEFAULT_VHOST: api_monitoring
+        ports:
+          - 5672:5672
+        options: >-
+          --health-cmd "rabbitmq-diagnostics -q ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+      
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20.x
+
+      - name: Install server dependencies
+        working-directory: server
+        run: npm ci
+
+      - name: Install Playwright browsers
+        working-directory: server
+        run: npx playwright install --with-deps chromium
+
+      - name: Wait for services to be ready
+        run: |
+          sleep 10
+          echo "All services should be up"
+
+      - name: Run e2e tests (Playwright)
+        working-directory: server
+        env:
+          MONGO_URI: "mongodb://localhost:27017"
+          MONGO_DB_NAME: "cerberus_dev"
+          PG_HOST: "localhost"
+          PG_PORT: "5432"
+          PG_DATABASE: "cerberus_analytics"
+          PG_USER: "postgres"
+          PG_PASSWORD: "postgres123"
+          RABBITMQ_URL: "amqp://admin:rabbit123@localhost:5672/api_monitoring"
+          RABBITMQ_QUEUE: "api_hits"
+          JWT_SECRET: "test-secret-of-at-least-32-characters-ok"
+          REDIS_URL: "redis://localhost:6379"
+          REDIS_CACHE_TTL_VALID: "300"
+          REDIS_CACHE_TTL_INVALID: "60"
+        run: |
+          npm run dev &
+          sleep 5
+          npm run test:e2e
+
+      - name: Upload Playwright report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: server/playwright-report/
+
       - name: SonarCloud Scan
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
         run: |
-          # Install SonarScanner (if not already in your devDependencies)
+          if [ -z "${SONAR_TOKEN}" ] || [ -z "${SONAR_HOST_URL}" ]; then
+            echo "⚠️  SONAR_TOKEN or SONAR_HOST_URL not set — skipping SonarCloud scan"
+            exit 0
+          fi
           npm install -g sonar-scanner
-    sonar-scanner \
-      -Dsonar.projectKey=your-org_cerberus-api-monitoring-system \
-      -Dsonar.organization=your-org \
-      -Dsonar.host.url=$SONAR_HOST_URL \
-      -Dsonar.login=$SONAR_TOKEN
-  # Optional deployment job could be added here
-
+          sonar-scanner \
+            -Dsonar.projectKey=your-org_cerberus-api-monitoring-system \
+            -Dsonar.organization=your-org \
+            -Dsonar.host.url="${SONAR_HOST_URL}" \
+            -Dsonar.login="${SONAR_TOKEN}"

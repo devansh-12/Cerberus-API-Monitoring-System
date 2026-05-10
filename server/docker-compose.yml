@@ -11,7 +11,7 @@ services:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./server/scripts/init-postgres.sql:/docker-entrypoint-initdb.d/init-postgres.sql
+      - ./scripts/init-postgres.sql:/docker-entrypoint-initdb.d/init-postgres.sql
     networks:
       - api-monitoring-network
     restart: unless-stopped
@@ -90,11 +90,11 @@ services:
 
   api-app:
     build:
-      context: ./server
+      context: .
       dockerfile: Dockerfile
     container_name: api-monitoring-app
     environment:
-      NODE_ENV: production
+      NODE_ENV: development
       PORT: 5000
       # MongoDB (local container)
       MONGO_URI: mongodb://mongo:27017/api_monitoring
@@ -139,7 +139,7 @@ services:
       retries: 3
   consumer:
     build:
-      context: ./server
+      context: .
       dockerfile: Dockerfile.consumer
     container_name: api-monitoring-consumer
     environment:

@@ -7,8 +7,8 @@ WORKDIR /app
 # Copy package files first (better caching)
 COPY package*.json ./
 
-# Install dependencies
-RUN npm install --production
+# Install dependencies (including devDependencies for tsx)
+RUN npm install
 
 # Copy rest of the code
 COPY . .
@@ -18,5 +18,5 @@ RUN mkdir -p logs
 # Expose port
 EXPOSE 5000
 
-# Start the app
-CMD ["node", "src/server.js"]
+# Start the app with TypeScript support  
+CMD ["npx", "tsx", "src/server.ts"]

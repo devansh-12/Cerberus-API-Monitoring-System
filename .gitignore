@@ -61,3 +61,7 @@ out/
 # Optional: Docker
 
 docker-compose.override.yml
+
+# Kubernetes secrets (commit only the example template)
+k8s/secret.yaml
+k8s/secret.local.yaml

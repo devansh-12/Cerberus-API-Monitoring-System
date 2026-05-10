@@ -1,0 +1,99 @@
+# ── Frontend Deployment ───────────────────────────────────────────────────────
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cerberus-frontend
+  namespace: cerberus
+  labels:
+    app: cerberus-frontend
+    component: web-ui
+    version: "1.0.0"
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: cerberus-frontend
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  template:
+    metadata:
+      labels:
+        app: cerberus-frontend
+        component: web-ui
+    spec:
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1001
+        runAsGroup: 1001
+      containers:
+        - name: cerberus-frontend
+          image: cerberus-frontend:1.0.0
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 80
+              name: http
+          resources:
+            requests:
+              cpu: "50m"
+              memory: "64Mi"
+              ephemeral-storage: "50Mi"
+            limits:
+              cpu: "200m"
+              memory: "128Mi"
+              ephemeral-storage: "100Mi"
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 80
+            initialDelaySeconds: 10
+            periodSeconds: 15
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 80
+            initialDelaySeconds: 5
+            periodSeconds: 10
+
+---
+# ── Frontend ClusterIP Service ────────────────────────────────────────────────
+apiVersion: v1
+kind: Service
+metadata:
+  name: cerberus-frontend-service
+  namespace: cerberus
+  labels:
+    app: cerberus-frontend
+    component: web-ui
+spec:
+  selector:
+    app: cerberus-frontend
+  ports:
+    - port: 80
+      targetPort: 80
+      name: http
+  type: ClusterIP
+
+---
+# ── NodePort Service (local/minikube access without Ingress) ──────────────────
+apiVersion: v1
+kind: Service
+metadata:
+  name: cerberus-frontend-nodeport
+  namespace: cerberus
+  labels:
+    app: cerberus-frontend
+    component: web-ui
+spec:
+  selector:
+    app: cerberus-frontend
+  ports:
+    - port: 80
+      targetPort: 80
+      nodePort: 30080
+      name: http
+  type: NodePort

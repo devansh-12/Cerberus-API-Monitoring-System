@@ -1,0 +1,128 @@
+# ── PersistentVolumeClaim ─────────────────────────────────────────────────────
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: rabbitmq-pvc
+  namespace: cerberus
+  labels:
+    app: cerberus-rabbitmq
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 2Gi
+
+---
+# ── StatefulSet ───────────────────────────────────────────────────────────────
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: cerberus-rabbitmq
+  namespace: cerberus
+  labels:
+    app: cerberus-rabbitmq
+    component: message-broker
+spec:
+  serviceName: cerberus-rabbitmq
+  replicas: 1
+  selector:
+    matchLabels:
+      app: cerberus-rabbitmq
+  template:
+    metadata:
+      labels:
+        app: cerberus-rabbitmq
+        component: message-broker
+    spec:
+      automountServiceAccountToken: false
+      containers:
+        - name: rabbitmq
+          image: rabbitmq:3-management-alpine
+          ports:
+            - containerPort: 5672
+              name: amqp
+            - containerPort: 15672
+              name: management
+          env:
+            - name: RABBITMQ_DEFAULT_USER
+              valueFrom:
+                secretKeyRef:
+                  name: cerberus-api-secret
+                  key: RABBITMQ_DEFAULT_USER
+            - name: RABBITMQ_DEFAULT_PASS
+              valueFrom:
+                secretKeyRef:
+                  name: cerberus-api-secret
+                  key: RABBITMQ_DEFAULT_PASS
+            - name: RABBITMQ_DEFAULT_VHOST
+              value: api_monitoring
+          resources:
+            requests:
+              cpu: "150m"
+              memory: "256Mi"
+              ephemeral-storage: "100Mi"
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
+              ephemeral-storage: "200Mi"
+          livenessProbe:
+            exec:
+              command: ["rabbitmq-diagnostics", "-q", "ping"]
+            initialDelaySeconds: 60
+            periodSeconds: 30
+            failureThreshold: 5
+          readinessProbe:
+            exec:
+              command: ["rabbitmq-diagnostics", "-q", "ping"]
+            initialDelaySeconds: 30
+            periodSeconds: 15
+          volumeMounts:
+            - name: rabbitmq-storage
+              mountPath: /var/lib/rabbitmq
+      volumes:
+        - name: rabbitmq-storage
+          persistentVolumeClaim:
+            claimName: rabbitmq-pvc
+
+---
+# ── AMQP Service (ClusterIP) ──────────────────────────────────────────────────
+apiVersion: v1
+kind: Service
+metadata:
+  name: cerberus-rabbitmq
+  namespace: cerberus
+  labels:
+    app: cerberus-rabbitmq
+    component: message-broker
+spec:
+  selector:
+    app: cerberus-rabbitmq
+  ports:
+    - port: 5672
+      targetPort: 5672
+      name: amqp
+    - port: 15672
+      targetPort: 15672
+      name: management
+  type: ClusterIP
+
+---
+# ── Management UI NodePort (optional — for local access) ──────────────────────
+apiVersion: v1
+kind: Service
+metadata:
+  name: cerberus-rabbitmq-mgmt
+  namespace: cerberus
+  labels:
+    app: cerberus-rabbitmq
+    component: message-broker
+spec:
+  selector:
+    app: cerberus-rabbitmq
+  ports:
+    - port: 15672
+      targetPort: 15672
+      name: management
+      nodePort: 31672
+  type: NodePort

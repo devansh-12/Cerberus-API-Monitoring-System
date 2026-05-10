@@ -1,0 +1,39 @@
+# ── Ingress (NGINX Ingress Controller required) ───────────────────────────────
+# Enable on minikube with: minikube addons enable ingress
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: cerberus-ingress
+  namespace: cerberus
+  labels:
+    app: cerberus
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+    nginx.ingress.kubernetes.io/proxy-body-size: "10m"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "90"
+    nginx.ingress.kubernetes.io/proxy-connect-timeout: "10"
+    # Enable CORS at Ingress level
+    nginx.ingress.kubernetes.io/enable-cors: "true"
+    nginx.ingress.kubernetes.io/cors-allow-origin: "*"
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: cerberus.local      # Add to /etc/hosts: <minikube-ip>  cerberus.local
+      http:
+        paths:
+          # Route /api/* to backend
+          - path: /api
+            pathType: Prefix
+            backend:
+              service:
+                name: cerberus-api-service
+                port:
+                  number: 5000
+          # Route everything else to frontend
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: cerberus-frontend-service
+                port:
+                  number: 80

@@ -56,15 +56,15 @@ const Login: React.FC = () => {
           <form className="flex flex-col space-y-5" onSubmit={handleLogin} noValidate>
             <div className="flex flex-col space-y-2">
               <label className="font-body-sm text-body-sm text-text-secondary font-medium" htmlFor="email">
-                Email address
+                Username
               </label>
               <input
                 id="email"
                 name="email"
-                type="email"
+                type="text"
                 required
-                autoComplete="email"
-                placeholder="admin@cerberus.io"
+                autoComplete="username"
+                placeholder="superadmin"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 disabled={isLoading}

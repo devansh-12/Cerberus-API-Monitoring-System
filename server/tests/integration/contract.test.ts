@@ -1,6 +1,5 @@
 import { jest, describe, it, expect, beforeEach } from '@jest/globals';
 import request from 'supertest';
-import { app } from '../../src/server.js';
 
 // Mock DB/Queue connections
 jest.mock('../../src/shared/config/mongodb.js', () => ({
@@ -15,6 +14,8 @@ jest.mock('../../src/shared/config/rabbitmq.js', () => ({
 jest.mock('../../src/shared/config/redis.js', () => ({
   default: { getClient: jest.fn().mockReturnValue({ on: jest.fn(), get: jest.fn(), set: jest.fn() }) }
 }));
+
+import { app } from '../../src/server.js';
 
 describe('API Contract Tests', () => {
   describe('Health Check endpoint', () => {

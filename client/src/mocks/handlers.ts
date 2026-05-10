@@ -3,8 +3,8 @@ import { http, HttpResponse } from 'msw';
 export const handlers = [
   // Auth handlers
   http.post('/api/auth/login', async ({ request }) => {
-    const body = (await request.json()) as { email?: string; password?: string };
-    if (body.email === 'admin@cerberus.test' && body.password === 'admin123') {
+    const body = (await request.json()) as { username?: string; password?: string };
+    if (body.username === 'admin@cerberus.test' && body.password === 'admin123') {
       return HttpResponse.json({
         success: true,
         data: {

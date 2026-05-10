@@ -5,35 +5,35 @@ dotenv.config();
 
 const envSchema = z.object({
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
-  PORT: z.string().transform(Number).default('5000'),
+  PORT: z.string().default('5000').transform(Number),
 
   MONGO_URI: z.string().min(1, 'MONGO_URI is required'),
   MONGO_DB_NAME: z.string().min(1, 'MONGO_DB_NAME is required'),
 
   PG_HOST: z.string().default('postgres'),
-  PG_PORT: z.string().transform(Number).default('5432'),
+  PG_PORT: z.string().default('5432').transform(Number),
   PG_DATABASE: z.string().min(1, 'PG_DATABASE is required'),
   PG_USER: z.string().min(1, 'PG_USER is required'),
   PG_PASSWORD: z.string().min(1, 'PG_PASSWORD is required'),
 
   RABBITMQ_URL: z.string().min(1, 'RABBITMQ_URL is required'),
   RABBITMQ_QUEUE: z.string().default('api_hits'),
-  RABBITMQ_RETRY_ATTEMPTS: z.string().transform(Number).default('3'),
-  RABBITMQ_RETRY_DELAY: z.string().transform(Number).default('200'),
+  RABBITMQ_RETRY_ATTEMPTS: z.string().default('3').transform(Number),
+  RABBITMQ_RETRY_DELAY: z.string().default('200').transform(Number),
 
   REDIS_URL: z.string().url('REDIS_URL must be a valid URL').default('redis://localhost:6379'),
-  REDIS_CACHE_TTL_VALID: z.string().transform(Number).default('300'),
-  REDIS_CACHE_TTL_INVALID: z.string().transform(Number).default('60'),
+  REDIS_CACHE_TTL_VALID: z.string().default('300').transform(Number),
+  REDIS_CACHE_TTL_INVALID: z.string().default('60').transform(Number),
 
   JWT_SECRET: z.string().min(32, 'JWT_SECRET must be at least 32 characters'),
   JWT_EXPIRES_IN: z.string().default('24h'),
 
-  RATE_LIMIT_WINDOW_MS: z.string().transform(Number).default('60000'),
-  RATE_LIMIT_MAX_REQUESTS: z.string().transform(Number).default('100'),
+  RATE_LIMIT_WINDOW_MS: z.string().default('60000').transform(Number),
+  RATE_LIMIT_MAX_REQUESTS: z.string().default('100').transform(Number),
 
-  COOKIE_HTTP_ONLY: z.string().transform((v) => v === 'true').default('true'),
-  COOKIE_SECURE: z.string().transform((v) => v === 'true').default('false'),
-  COOKIE_EXPIRES_IN: z.string().transform(Number).default('86400000'),
+  COOKIE_HTTP_ONLY: z.string().default('true').transform((v) => v === 'true'),
+  COOKIE_SECURE: z.string().default('false').transform((v) => v === 'true'),
+  COOKIE_EXPIRES_IN: z.string().default('86400000').transform(Number),
 });
 
 export type AppConfig = z.infer<typeof envSchema>;
@@ -65,6 +65,6 @@ export const config = {
   RABBITMQ_URL: raw.RABBITMQ_URL,
   RABBITMQ_QUEUE: raw.RABBITMQ_QUEUE,
   NODE_ENV: raw.NODE_ENV,
-} as const;
+};
 
 export default config;
