@@ -26,7 +26,7 @@ for i in {1..30}; do
     echo "✅ Server is ready!"
     break
   fi
-  if [ $i -eq 30 ]; then
+  if [[ $i -eq 30 ]]; then
     echo "❌ Server failed to start within 30 seconds"
     kill $SERVER_PID 2>/dev/null
     exit 1
