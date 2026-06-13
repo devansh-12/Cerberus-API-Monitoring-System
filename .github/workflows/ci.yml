@@ -5,6 +5,7 @@ on:
     branches: [main, develop]
   pull_request:
     branches: [main, develop]
+  workflow_dispatch:
 
 jobs:
   test:
@@ -12,7 +13,7 @@ jobs:
     strategy:
       matrix:
         node-version: [20.x]
-    
+
     services:
       redis:
         image: redis:7-alpine
@@ -32,7 +33,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node-version }}
-          cache: ''
+          cache: ""
 
       - name: Install server dependencies
         working-directory: server
@@ -41,10 +42,10 @@ jobs:
           npm_config_cache: ${{ github.workspace }}/server/.npm
 
       - name: Install client dependencies
-        working-directory: client
+        working-directory: dashboard
         run: npm ci
         env:
-          npm_config_cache: ${{ github.workspace }}/client/.npm
+          npm_config_cache: ${{ github.workspace }}/dashboard/.npm
 
       - name: Lint server code (ESLint)
         working-directory: server
@@ -67,15 +68,15 @@ jobs:
         run: npm test -- --forceExit
 
       - name: Lint client code (ESLint)
-        working-directory: client
+        working-directory: dashboard
         run: npm run lint --if-present || echo "No lint script found"
 
       - name: Run client tests (Vitest)
-        working-directory: client
+        working-directory: dashboard
         run: npm test -- --run
 
       - name: Build client (Vite)
-        working-directory: client
+        working-directory: dashboard
         run: npm run build
 
       - name: Upload test coverage
@@ -85,12 +86,12 @@ jobs:
           name: coverage-report
           path: |
             server/coverage/**
-            client/coverage/**
+            dashboard/coverage/**
 
   e2e_test:
     runs-on: ubuntu-latest
     needs: test
-    
+
     services:
       postgres:
         image: timescale/timescaledb:latest-pg15
@@ -105,7 +106,7 @@ jobs:
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
-      
+
       mongo:
         image: mongo:6.0
         ports:
@@ -115,7 +116,7 @@ jobs:
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
-      
+
       rabbitmq:
         image: rabbitmq:3-management-alpine
         env:
@@ -129,7 +130,7 @@ jobs:
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
-      
+
       redis:
         image: redis:7-alpine
         ports:
