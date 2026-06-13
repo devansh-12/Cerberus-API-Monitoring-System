@@ -38,7 +38,7 @@ header()  { echo -e "\n${BOLD}${CYAN}══════════════�
 # ── Config ────────────────────────────────────────────────────────────────────
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SERVER_DIR="${SCRIPT_DIR}/server"
-CLIENT_DIR="${SCRIPT_DIR}/client"
+CLIENT_DIR="${SCRIPT_DIR}/dashboard"
 K8S_DIR="${SCRIPT_DIR}/k8s"
 COMPOSE_FILE="${SERVER_DIR}/docker-compose.yml"
 

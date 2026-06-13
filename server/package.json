@@ -14,11 +14,11 @@
     "test:e2e": "playwright test",
     "test:e2e:setup": "bash scripts/test-e2e.sh",
     "test:e2e:ui": "playwright test --ui",
-    "seed": "node scripts/seed-databases.js",
-    "seed:clean": "node scripts/seed-databases.js --clean",
-    "seed:large": "node scripts/seed-databases.js --clients 5 --hits 2000",
-    "seed:help": "node scripts/seed-databases.js --help",
-    "seed:validate": "node scripts/validate-seed.js"
+    "seed": "tsx scripts/seed-databases.js",
+    "seed:clean": "tsx scripts/seed-databases.js --clean",
+    "seed:large": "tsx scripts/seed-databases.js --clients 5 --hits 2000",
+    "seed:help": "tsx scripts/seed-databases.js --help",
+    "seed:validate": "tsx scripts/validate-seed.js"
   },
   "keywords": [
     "api",

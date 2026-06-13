@@ -10,6 +10,13 @@ CREATE TABLE IF NOT EXISTS endpoint_metrics (
     avg_latency NUMERIC(10,3) DEFAULT 0.000,
     min_latency NUMERIC(10,3) DEFAULT 0.000,
     max_latency NUMERIC(10,3) DEFAULT 0.000,
+    hits_2xx INTEGER DEFAULT 0,
+    hits_3xx INTEGER DEFAULT 0,
+    hits_4xx INTEGER DEFAULT 0,
+    hits_5xx INTEGER DEFAULT 0,
+    rate_limit_hits INTEGER DEFAULT 0,
+    req_bytes_total BIGINT DEFAULT 0,
+    res_bytes_total BIGINT DEFAULT 0,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     
