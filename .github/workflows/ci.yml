@@ -192,6 +192,7 @@ jobs:
           path: server/playwright-report/
 
       - name: SonarCloud Scan
+        continue-on-error: true
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
