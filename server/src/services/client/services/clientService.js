@@ -230,7 +230,7 @@ export class ClientService {
             const apiKey = await this.apiKeyRepository.create({
                 keyId,
                 keyValue,
-                clientId,
+                ClientId: clientId,
                 name,
                 description,
                 environment,
@@ -273,6 +273,30 @@ export class ClientService {
 
         } catch (error) {
             logger.error('Error getting client API keys:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * Lookup a client and API key record by raw API key value.
+     * Used by the validateApiKey middleware for ingest authentication.
+     * @param {string} keyValue - The raw API key string (e.g. apim_xxxx)
+     * @returns {{ client: Object, apiKey: Object } | null}
+     */
+    async getClientByApiKey(keyValue) {
+        try {
+            const apiKey = await this.apiKeyRepository.findByKeyValue(keyValue);
+
+            if (!apiKey) return null;
+
+            // findByKeyValue populates ClientId — use it as the client object
+            const client = apiKey.ClientId;
+
+            if (!client) return null;
+
+            return { client, apiKey };
+        } catch (error) {
+            logger.error('Error looking up client by API key:', error);
             throw error;
         }
     }

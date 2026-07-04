@@ -41,7 +41,7 @@ class MongoApiKeyRepository extends BaseApiKeyRepository {
                 filter.isActive = true;
             }
 
-            const apiKey = await this.model.findOne(filter).populate('clientId');
+            const apiKey = await this.model.findOne(filter).populate('ClientId');
             return apiKey;
         } catch (error) {
             logger.error('Error finding API key by value:', error);

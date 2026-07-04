@@ -1,12 +1,20 @@
 {
-  "name": "@cerberus-monitoring/express",
+  "name": "@devanshwastaken/cerberus-express",
   "version": "1.0.0",
-  "description": "Official Express.js middleware for Cerberus API Monitoring System",
+  "description": "Lightweight Express.js middleware to track API hits, latency, and status codes with the Cerberus monitoring system",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
+  "files": [
+    "dist/",
+    "README.md"
+  ],
+  "engines": {
+    "node": ">=18.0.0"
+  },
   "scripts": {
     "build": "tsc",
-    "prepare": "npm run build"
+    "prepare": "npm run build",
+    "prepublishOnly": "npm run build"
   },
   "keywords": [
     "cerberus",
@@ -14,10 +22,22 @@
     "express",
     "middleware",
     "api",
-    "observability"
+    "observability",
+    "analytics",
+    "latency",
+    "metrics"
   ],
   "author": "Cerberus Monitoring",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/devansh-12/Cerberus-API-Monitoring-System.git",
+    "directory": "sdks/express"
+  },
+  "homepage": "https://github.com/devansh-12/Cerberus-API-Monitoring-System#readme",
+  "bugs": {
+    "url": "https://github.com/devansh-12/Cerberus-API-Monitoring-System/issues"
+  },
   "peerDependencies": {
     "express": "^4.0.0 || ^5.0.0"
   },

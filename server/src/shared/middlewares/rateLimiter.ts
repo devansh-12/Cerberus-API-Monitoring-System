@@ -38,9 +38,11 @@ export const ingestRateLimiter = rateLimit({
     // rate-limit-redis requires a raw RESP command sender
     sendCommand: async (...args: string[]): Promise<any> => {
       const client = redisConnection.getClient();
-      return (client as any).call(...args);
+      const [command, ...rest] = args;
+      return (client as any)[command.toLowerCase()](...rest);
     },
   }),
+
 
   standardHeaders: true,   // Return RateLimit-* headers (RFC 6585)
   legacyHeaders:   false,  // Disable X-RateLimit-* headers

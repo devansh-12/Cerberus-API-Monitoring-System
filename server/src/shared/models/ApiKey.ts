@@ -34,7 +34,7 @@ const apiKeySchema = new Schema<IApiKey>(
   {
     keyId: { type: String, required: true, unique: true, index: true },
     keyValue: { type: String, required: true, unique: true, index: true },
-    ClientId: { type: Schema.Types.ObjectId, ref: 'Clients', required: true, index: true },
+    ClientId: { type: Schema.Types.ObjectId, ref: 'Client', required: true, index: true },
     name: { type: String, required: true, trim: true, maxLength: 100 },
     description: { type: String, maxlength: 500, default: '' },
     environment: { type: String, enum: ['production', 'staging', 'development', 'testing'], default: 'production' },

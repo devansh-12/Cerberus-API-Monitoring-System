@@ -27,7 +27,7 @@ const apiHitSchema = new Schema<IApiHit>(
     method: { type: String, required: true, enum: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS', 'HEAD'] },
     statusCode: { type: Number, required: true, index: true },
     latencyMs: { type: Number, required: true },
-    ClientId: { type: Schema.Types.ObjectId, ref: 'Clients', required: true, index: true },
+    ClientId: { type: Schema.Types.ObjectId, ref: 'Client', required: true, index: true },
     ApiKeyId: { type: Schema.Types.ObjectId, ref: 'ApiKey', required: true, index: true },
     ip: { type: String, required: true },
     userAgent: { type: String },

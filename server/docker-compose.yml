@@ -59,7 +59,7 @@ services:
     container_name: api-monitoring-redis
     command: redis-server --maxmemory 256mb --maxmemory-policy allkeys-lru
     ports:
-      - "6379:6379"
+      - "6380:6379"
     volumes:
       - redis_data:/data
     networks:
@@ -111,6 +111,11 @@ services:
       # Security
       JWT_SECRET: ${JWT_SECRET}
       JWT_EXPIRES_IN: 24h
+      PASSWORD_MIN_LENGTH: 6
+      PASSWORD_REQUIRE_UPPERCASE: "false"
+      PASSWORD_REQUIRE_LOWERCASE: "false"
+      PASSWORD_REQUIRE_NUMBERS: "false"
+      PASSWORD_REQUIRE_SYMBOLS: "false"
       # Rate Limiting
       RATE_LIMIT_WINDOW_MS: 60000
       RATE_LIMIT_MAX_REQUESTS: 100
@@ -158,6 +163,11 @@ services:
       RABBITMQ_QUEUE: api_hits
       # Security
       JWT_SECRET: ${JWT_SECRET}
+      PASSWORD_MIN_LENGTH: 6
+      PASSWORD_REQUIRE_UPPERCASE: "false"
+      PASSWORD_REQUIRE_LOWERCASE: "false"
+      PASSWORD_REQUIRE_NUMBERS: "false"
+      PASSWORD_REQUIRE_SYMBOLS: "false"
       # Redis Cache
       REDIS_URL: redis://redis:6379
       REDIS_CACHE_TTL_VALID: 300

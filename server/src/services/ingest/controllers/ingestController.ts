@@ -29,34 +29,43 @@ export class IngestController {
         clientKeys: Object.keys((req as any).client),
       });
 
-      const hitData = {
-        ...req.body,
-        clientId: (req as any).client._id,
-        apiKeyId: (req as any).apiKey._id,
-        ip: req.ip || (req as any).connection?.remoteAddress,
-        userAgent: req.headers['user-agent'] || '',
-      };
+      const rawBody = req.body;
+      const hits = Array.isArray(rawBody) ? rawBody : [rawBody];
 
-      logger.info('Ingest: Hit data prepared', {
-        clientId: (req as any).client._id,
-        endpoint: hitData.endpoint,
-        method: hitData.method,
-      });
+      const results = [];
+      for (const hit of hits) {
+        const hitData = {
+          ...hit,
+          ClientId: (req as any).client._id,
+          ApiKeyId: (req as any).apiKey._id,
+          ip: req.ip || (req as any).connection?.remoteAddress,
+          userAgent: req.headers['user-agent'] || '',
+        };
 
-      const result = await this.ingestService.ingestApiHit(hitData);
+        logger.debug('Ingest: Hit data prepared', {
+          clientId: hitData.ClientId,
+          endpoint: hitData.endpoint,
+          method: hitData.method,
+        });
 
-      if (result.status === 'rejected') {
+        const result = await this.ingestService.ingestApiHit(hitData);
+        results.push(result);
+      }
+
+      const anyRejected = results.some(r => r.status === 'rejected');
+
+      if (anyRejected) {
         res.status(503).json(
-          ResponseFormatter.error('Service temporarily unavailable', 503, {
-            eventId: result.eventId,
-            reason: result.reason,
-            retryAfter: '30 seconds',
-          })
+          ResponseFormatter.error('Service temporarily unavailable, some hits rejected', 503, [
+            'Retry after 30 seconds',
+            ...results.filter(r => r.status === 'rejected').map(r => JSON.stringify(r))
+          ])
         );
         return;
       }
 
-      res.status(202).json(ResponseFormatter.success(result, 'API hit queued for processing', 202));
+      res.status(202).json(ResponseFormatter.success({ processed: results.length, results }, 'API hit(s) queued for processing', 202));
+
     } catch (error) {
       next(error);
     }

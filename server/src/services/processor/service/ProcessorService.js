@@ -33,7 +33,7 @@ export class ProcessorService {
         try {
             logger.info('Processing event data:', {
                 eventId: eventData.eventId,
-                clientId: eventData.clientId,
+                clientId: eventData.ClientId,
                 serviceName: eventData.serviceName,
                 endpoint: eventData.endpoint,
                 method: eventData.method,
@@ -78,7 +78,7 @@ export class ProcessorService {
             const statusCode = eventData.statusCode || 0;
 
             const metricsData = {
-                clientId:      eventData.clientId.toString(),
+                clientId:      eventData.ClientId.toString(),
                 serviceName:   eventData.serviceName,
                 endpoint:      eventData.endpoint,
                 method:        eventData.method,

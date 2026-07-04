@@ -4,6 +4,7 @@ import {
     LayoutDashboard,
     Settings,
     Zap,
+    FolderOpen,
 } from 'lucide-react';
 import styles from '../../styles/modules/layout/Sidebar.module.scss';
 
@@ -13,6 +14,12 @@ const navItems = [
         href: '/',
         icon: LayoutDashboard,
         description: 'Main dashboard view'
+    },
+    {
+        title: 'Projects',
+        href: '/projects',
+        icon: FolderOpen,
+        description: 'Manage projects & API keys'
     },
 ];
 

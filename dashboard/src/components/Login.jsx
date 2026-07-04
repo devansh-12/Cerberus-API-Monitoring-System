@@ -4,7 +4,7 @@ import { authApi } from '../api/api';
 import { Activity, Lock, User, Loader2 } from 'lucide-react';
 import styles from '../styles/modules/Login.module.scss';
 
-function Login({ onLoginSuccess }) {
+function Login({ onLoginSuccess, onShowSetup }) {
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
@@ -111,6 +111,26 @@ function Login({ onLoginSuccess }) {
                             </div>
                         </button>
                     </form>
+                    {onShowSetup && (
+                        <div style={{ marginTop: '1rem', textAlign: 'center' }}>
+                            <button
+                                type="button"
+                                onClick={onShowSetup}
+                                style={{
+                                    background: 'none',
+                                    border: 'none',
+                                    color: 'rgba(196,181,253,0.7)',
+                                    fontSize: '0.8125rem',
+                                    cursor: 'pointer',
+                                    textDecoration: 'underline',
+                                    textUnderlineOffset: '2px',
+                                    padding: 0,
+                                }}
+                            >
+                                First time? Set up Cerberus →
+                            </button>
+                        </div>
+                    )}
                 </div>
             </div>
         </div>

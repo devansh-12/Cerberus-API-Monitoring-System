@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import Login from './components/Login';
+import Setup from './components/Setup';
 import { authApi } from './api/api';
 import { DashboardLayout } from './components/layout';
 import { ThemeProvider } from './contexts/ThemeContext';
@@ -10,6 +11,7 @@ import ErrorBoundary from './components/ErrorBoundary';
 
 const OverviewPage = lazy(() => import('./pages/OverviewPage').then(m => ({ default: m.OverviewPage })));
 const SettingsPage = lazy(() => import('./pages/SettingsPage').then(m => ({ default: m.SettingsPage })));
+const ProjectsPage = lazy(() => import('./pages/ProjectsPage').then(m => ({ default: m.ProjectsPage })));
 
 const pageFallback = (
     <div style={{ height: '60vh', display: 'grid', placeItems: 'center' }}>Loading…</div>
@@ -17,6 +19,7 @@ const pageFallback = (
 
 function AuthGate() {
     const [isAuthenticated, setIsAuthenticated] = useState(null);
+    const [showSetup, setShowSetup] = useState(false);
     const queryClient = useQueryClient();
 
     useEffect(() => {
@@ -32,11 +35,13 @@ function AuthGate() {
     }, []);
 
     const handleLoginSuccess = () => setIsAuthenticated(true);
+    const handleSetupComplete = () => setIsAuthenticated(true);
 
     const handleLogout = useCallback(async () => {
         try { await authApi.logout(); } catch { }
         queryClient.clear();
         setIsAuthenticated(false);
+        setShowSetup(false);
     }, [queryClient]);
 
     useEffect(() => {
@@ -58,7 +63,15 @@ function AuthGate() {
     }
 
     if (!isAuthenticated) {
-        return <Login onLoginSuccess={handleLoginSuccess} />;
+        if (showSetup) {
+            return (
+                <Setup
+                    onSetupComplete={handleSetupComplete}
+                    onBackToLogin={() => setShowSetup(false)}
+                />
+            );
+        }
+        return <Login onLoginSuccess={handleLoginSuccess} onShowSetup={() => setShowSetup(true)} />;
     }
 
     return (
@@ -66,6 +79,7 @@ function AuthGate() {
             <Suspense fallback={pageFallback}>
                 <Routes>
                     <Route path="/" element={<OverviewPage />} />
+                    <Route path="/projects" element={<ProjectsPage />} />
                     <Route path="/settings" element={<SettingsPage />} />
                     <Route path="*" element={<Navigate to="/" replace />} />
                 </Routes>

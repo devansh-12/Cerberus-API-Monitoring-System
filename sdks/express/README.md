@@ -1,4 +1,4 @@
-# @cerberus-monitoring/express
+# @devanshwastaken/cerberus-express
 
 The official Express.js middleware for the Cerberus API Monitoring System.
 
@@ -15,7 +15,7 @@ This package provides a drop-in middleware to automatically track API hits, late
 ## Installation
 
 ```bash
-npm install @cerberus-monitoring/express
+npm install @devanshwastaken/cerberus-express
 ```
 
 ## Basic Usage

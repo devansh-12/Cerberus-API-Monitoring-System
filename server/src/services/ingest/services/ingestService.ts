@@ -1,14 +1,16 @@
+import crypto from 'crypto';
 import logger from '../../../shared/config/logger.js';
 import AppError from '../../../shared/utils/AppError.js';
 import { EVENT_TYPES } from '../../../shared/events/eventContracts.js';
-import { IEventProducer } from '../../../shared/events/producers/eventProducer.js';
+import { EventProducer } from '../../../shared/events/producers/eventProducer.js';
 
 export interface IngestServiceDependencies {
-  eventProducer: IEventProducer;
+  eventProducer: EventProducer;
 }
 
 export interface ApiHitData {
-  clientId: string;
+  ClientId: string;
+  ApiKeyId: string;
   endpoint: string;
   method: string;
   [key: string]: any;
@@ -18,7 +20,7 @@ export interface ApiHitData {
  * Service class responsible for handling API hit ingestion.
  */
 export class IngestService {
-  private eventProducer: IEventProducer;
+  private eventProducer: EventProducer;
 
   constructor({ eventProducer }: IngestServiceDependencies) {
     if (!eventProducer) throw new Error('IngestService requires eventProducer');
@@ -30,29 +32,42 @@ export class IngestService {
    */
   async ingestApiHit(hitData: ApiHitData) {
     try {
-      logger.info('IngestService: Processing API hit', {
-        clientId: hitData.clientId,
+      logger.debug('IngestService: Processing API hit', {
+        clientId: hitData.ClientId,
         endpoint: hitData.endpoint,
         method: hitData.method,
       });
 
+      const eventId = crypto.randomUUID();
       const eventData = {
         ...hitData,
+        eventId,
         timestamp: new Date().toISOString(),
       };
 
-      const result = await this.eventProducer.publish(EVENT_TYPES.API_HIT, eventData);
+      const published = await this.eventProducer.publishApiHit(eventData as any);
+
+      if (!published) {
+         return {
+            status: 'rejected',
+            eventId,
+            reason: 'Circuit breaker open',
+         };
+      }
 
       logger.info('IngestService: API hit published successfully', {
-        eventId: result.eventId,
-        clientId: hitData.clientId,
+        eventId,
+        clientId: hitData.ClientId,
       });
 
-      return result;
+      return {
+        status: 'published',
+        eventId,
+      };
     } catch (error) {
       logger.error('IngestService: Failed to ingest API hit', {
         error: (error as Error).message,
-        clientId: hitData.clientId,
+        clientId: hitData.ClientId,
       });
       throw error;
     }
