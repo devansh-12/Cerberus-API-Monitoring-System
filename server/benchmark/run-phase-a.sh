@@ -155,7 +155,9 @@ node benchmark/replay-logs.js \
 # ── Step 9: Wait for RabbitMQ queue to drain ─────────────────────────────────
 step "9/10  Waiting for RabbitMQ queue to drain (consumer processing)..."
 WAIT=0
-while true; do
+DRAIN_START=$(date +%s)
+while true;
+  do
   QUEUE_DEPTH=$(docker exec api-monitoring-rabbitmq \
     rabbitmqctl list_queues --vhost api_monitoring name messages 2>/dev/null \
     | awk '/^api_hits\t/ {print $2}' | tr -d '[:space:]')
@@ -163,11 +165,15 @@ while true; do
   QUEUE_DEPTH="${QUEUE_DEPTH:-0}"
 
   if [[ "$QUEUE_DEPTH" -eq 0 ]]; then
-    ok "Queue drained — all events processed by consumer"
+    DRAIN_END=$(date +%s)
+    DRAIN_SECS=$((DRAIN_END - DRAIN_START))
+    ok "Queue drained in ${DRAIN_SECS}s — all events processed by consumer"
     break
   fi
 
   if [[ $WAIT -ge $DRAIN_TIMEOUT ]]; then
+    DRAIN_END=$(date +%s)
+    DRAIN_SECS=$((DRAIN_END - DRAIN_START))
     warn "Queue drain timeout (${DRAIN_TIMEOUT}s). ${QUEUE_DEPTH} messages still pending."
     warn "Consumer may be slow — metrics collected anyway. Check logs if needed."
     break
@@ -181,7 +187,7 @@ done
 # ── Step 10: Harvest all metrics ─────────────────────────────────────────────
 step "10/10  Collecting metrics from all systems..."
 echo ""
-bash scripts/harvest-metrics.sh A
+bash scripts/harvest-metrics.sh A "" "${DRAIN_SECS:-}"
 
 END_TS=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
 echo -e "\n${BOLD}${GREEN}════════════════════════════════════════════════════════════════${RESET}"

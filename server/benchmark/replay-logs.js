@@ -22,12 +22,12 @@
  *   node benchmark/replay-logs.js --help
  */
 
-import fs from 'fs';
-import path from 'path';
-import readline from 'readline';
-import https from 'https';
-import http from 'http';
-import { fileURLToPath } from 'url';
+import fs from 'node:fs';
+import path from 'node:path';
+import readline from 'node:readline';
+import https from 'node:https';
+import http from 'node:http';
+import { fileURLToPath } from 'node:url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -49,9 +49,9 @@ for (let i = 0; i < args.length; i++) {
   if (args[i] === '--target'      && args[i+1]) cfg.target     = args[++i];
   if (args[i] === '--api-key'     && args[i+1]) cfg.apiKeys.push(args[++i]);
   if (args[i] === '--keys-file'   && args[i+1]) cfg.keysFile   = args[++i];
-  if (args[i] === '--batch-size'  && args[i+1]) cfg.batchSize  = parseInt(args[++i], 10);
-  if (args[i] === '--workers'     && args[i+1]) cfg.workers    = parseInt(args[++i], 10);
-  if (args[i] === '--limit'       && args[i+1]) cfg.limit      = parseInt(args[++i], 10);
+  if (args[i] === '--batch-size'  && args[i+1]) cfg.batchSize  = Number.parseInt(args[++i], 10);
+  if (args[i] === '--workers'     && args[i+1]) cfg.workers    = Number.parseInt(args[++i], 10);
+  if (args[i] === '--limit'       && args[i+1]) cfg.limit      = Number.parseInt(args[++i], 10);
   if (args[i] === '--mode'        && args[i+1]) cfg.mode       = args[++i];
   if (args[i] === '--help') {
     console.log(`
@@ -139,6 +139,7 @@ const stats = {
   rejected: 0,   // 429 rate-limited
   latTotal: 0,
   latCount: 0,
+  latSamples: [],  // for P95 calculation
   startMs:  Date.now(),
 };
 
@@ -158,7 +159,6 @@ function printProgress(total) {
 
 // ── Worker pool ───────────────────────────────────────────────────────────────
 async function runWorkerPool(batches) {
-  const total    = batches.length * cfg.batchSize; // approximate
   let   batchIdx = 0;
   let   active   = 0;
 
@@ -171,10 +171,18 @@ async function runWorkerPool(batches) {
         const apiKey = nextKey();
         active++;
 
+        // Stamp clientSentAt right now — just before the HTTP call fires.
+        // This ensures the E2E latency (updatedAt − clientSentAt) measured
+        // in MongoDB reflects only pipeline processing time, not queue-wait
+        // time caused by the worker concurrency limit.
+        const sendTs = Date.now();
+        for (const ev of batch) ev.clientSentAt = sendTs;
+
         postBatch(batch, apiKey).then((result) => {
           stats.sent    += result.events;
           stats.latTotal += result.latencyMs;
           stats.latCount++;
+          stats.latSamples.push(result.latencyMs);
 
           if (result.status === 202 || result.status === 200) {
             stats.success += result.events;
@@ -227,9 +235,9 @@ async function loadBatches() {
       timestamp:     timestamp,
       method:        method,
       endpoint:      endpoint.replace(/^"|"$/g, ''),
-      statusCode:    parseInt(statusCode, 10),
-      latencyMs:     parseFloat(latencyMs),
-      responseBytes: parseInt(responseBytes, 10),
+      statusCode:    Number.parseInt(statusCode, 10),
+      latencyMs:     Number.parseFloat(latencyMs),
+      responseBytes: Number.parseInt(responseBytes, 10),
       ip:            ip,
       userAgent:     (userAgent || '').replace(/^"|"$/g, ''),
       serviceName:   (serviceName || 'api-service').trim(),
@@ -272,38 +280,54 @@ async function main() {
   const { batches, total } = await loadBatches();
   console.log(`   Loaded ${total.toLocaleString()} events in ${batches.length.toLocaleString()} batches\n`);
 
-  // Stamp clientSentAt just before each batch is dispatched
-  for (const batch of batches) {
-    const now = Date.now();
-    for (const ev of batch) ev.clientSentAt = now;
-  }
+  // clientSentAt is stamped per-batch inside runWorkerPool, just before the HTTP
+  // request fires — so the timestamp reflects the actual send time and not the
+  // time the batch array was constructed (which would inflate E2E latency).
 
   console.log('🚀 Replay starting...\n');
   const t0 = Date.now();
   await runWorkerPool(batches);
 
-  const elapsed  = ((Date.now() - t0) / 1000).toFixed(1);
-  const eps      = Math.round(stats.sent / parseFloat(elapsed));
-  const avgLat   = stats.latCount > 0 ? Math.round(stats.latTotal / stats.latCount) : 0;
-  const errRate  = stats.sent > 0 ? ((stats.errors / stats.sent) * 100).toFixed(2) : '0.00';
-  const httpCalls = batches.length;
+  const elapsed   = ((Date.now() - t0) / 1000).toFixed(1);
+  const eps       = Math.round(stats.sent / Number.parseFloat(elapsed));
+  const avgLat    = stats.latCount > 0 ? Math.round(stats.latTotal / stats.latCount) : 0;
+  const errRate   = stats.sent > 0 ? ((stats.errors / stats.sent) * 100).toFixed(2) : '0.00';
+  const httpCalls  = batches.length;
   const savedCalls = stats.sent - httpCalls;
+
+  // Percentile HTTP round-trip latency (P95, P99) + min
+  let minLat = 0, p95Lat = 0, p99Lat = 0;
+  if (stats.latSamples.length > 0) {
+    const sorted = [...stats.latSamples].sort((a, b) => a - b);
+    minLat  = sorted[0];
+    p95Lat  = sorted[Math.max(0, Math.ceil(sorted.length * 0.95) - 1)];
+    p99Lat  = sorted[Math.max(0, Math.ceil(sorted.length * 0.99) - 1)];
+  }
+
+  const successRate = stats.sent > 0 ? ((stats.success / stats.sent) * 100).toFixed(2) : '0.00';
 
   console.log('\n\n╔══════════════════════════════════════════════════════╗');
   console.log('║                   REPLAY RESULTS                     ║');
   console.log('╠══════════════════════════════════════════════════════╣');
   console.log(`║  Total events sent   : ${String(stats.sent.toLocaleString()).padEnd(28)}║`);
   console.log(`║  Successful (2xx)    : ${String(stats.success.toLocaleString()).padEnd(28)}║`);
+  console.log(`║  Success rate        : ${String(successRate + '%').padEnd(28)}║`);
   console.log(`║  Rate limited (429)  : ${String(stats.rejected.toLocaleString()).padEnd(28)}║`);
   console.log(`║  Errors              : ${String(stats.errors.toLocaleString()).padEnd(28)}║`);
   console.log(`║  Error rate          : ${String(errRate + '%').padEnd(28)}║`);
+  console.log('╠══════════════════════════════════════════════════════╣');
   console.log(`║  Elapsed             : ${String(elapsed + 's').padEnd(28)}║`);
   console.log(`║  Throughput          : ${String(eps.toLocaleString() + ' events/sec').padEnd(28)}║`);
+  console.log('╠══════════════════════════════════════════════════════╣');
+  console.log(`║  Min HTTP latency    : ${String(minLat + ' ms').padEnd(28)}║`);
   console.log(`║  Avg HTTP latency    : ${String(avgLat + ' ms').padEnd(28)}║`);
+  console.log(`║  P95 HTTP latency    : ${String(p95Lat + ' ms').padEnd(28)}║`);
+  console.log(`║  P99 HTTP latency    : ${String(p99Lat + ' ms').padEnd(28)}║`);
+  console.log('╠══════════════════════════════════════════════════════╣');
   console.log(`║  HTTP requests made  : ${String(httpCalls.toLocaleString()).padEnd(28)}║`);
   console.log(`║  HTTP calls saved    : ${String(savedCalls.toLocaleString() + ' (batching)').padEnd(28)}║`);
   console.log('╚══════════════════════════════════════════════════════╝');
   console.log('\nNext step:\n  bash scripts/harvest-metrics.sh A\n');
 }
 
-main().catch(e => { console.error('\n❌ Fatal:', e.message); process.exit(1); });
+await main();

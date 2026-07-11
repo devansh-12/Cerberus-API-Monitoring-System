@@ -29,7 +29,8 @@ set -euo pipefail
 # ── Defaults ──────────────────────────────────────────────────────────────────
 EVENTS=100000
 WORKERS=200
-CRASH_DELAY=20       # seconds into replay before stopping consumer
+CRASH_DELAY=3        # seconds into replay before stopping consumer
+                     # kept short so 200 workers haven't exhausted events yet
 CRASH_DURATION=45    # seconds to keep consumer stopped
 TARGET="http://localhost:5000/api/hit"
 HEALTH_URL="http://localhost:5000/health"
@@ -158,6 +159,14 @@ step "7/10  Starting high-concurrency replay (${WORKERS} workers, rate limiter O
 info "429 responses are expected here — they prove the rate limiter is working."
 echo ""
 
+# Snapshot DLQ depth BEFORE replay so we can subtract pre-existing messages
+# (e.g. from Phase A) when computing Phase B's failure rate.
+DLQ_BEFORE=$(docker exec api-monitoring-rabbitmq \
+  rabbitmqctl list_queues --vhost api_monitoring name messages 2>/dev/null \
+  | awk '/api_hits\.dlq/ {print $2}' | tr -d '[:space:]')
+DLQ_BEFORE="${DLQ_BEFORE:-0}"
+ok "DLQ baseline snapshot: ${DLQ_BEFORE} pre-existing messages"
+
 # Start replay in background, redirect output to a temp file
 REPLAY_LOG=$(mktemp /tmp/cerberus-replay-b-XXXX.log)
 
@@ -248,13 +257,20 @@ wait "$REPLAY_PID" 2>/dev/null || true
 # Print replay summary from log
 echo ""
 echo "  ── Replay Output ──────────────────────────────────────"
-grep -A 20 "REPLAY RESULTS" "$REPLAY_LOG" | sed 's/^/  /' || true
+grep -A 30 "REPLAY RESULTS" "$REPLAY_LOG" | sed 's/^/  /' || true
+
+# Extract accepted events (2xx) from replay log — used for accurate DLQ rate
+ACCEPTED_EVENTS=$(grep "Successful (2xx)" "$REPLAY_LOG" \
+  | grep -oE '[0-9,]+' | head -1 | tr -d ',')
+ACCEPTED_EVENTS="${ACCEPTED_EVENTS:-}"
+
 rm -f "$REPLAY_LOG"
 
 # ── Wait for queue to drain ───────────────────────────────────────────────────
 echo ""
 info "Waiting for consumer to drain remaining queue..."
 WAIT=0
+DRAIN_SECS=""   # set in loop below; initialized here for set -u safety
 DRAIN_START=$(date +%s)
 while true; do
   Q=$(docker exec api-monitoring-rabbitmq \
@@ -264,12 +280,14 @@ while true; do
 
   if [[ "$Q" -eq 0 ]]; then
     DRAIN_END=$(date +%s)
-    DRAIN_TIME=$((DRAIN_END - DRAIN_START))
-    ok "Queue fully drained in ${DRAIN_TIME}s after consumer restart"
+    DRAIN_SECS=$((DRAIN_END - DRAIN_START))
+    ok "Queue fully drained in ${DRAIN_SECS}s after consumer restart"
     break
   fi
 
   if [[ $WAIT -ge $DRAIN_TIMEOUT ]]; then
+    DRAIN_END=$(date +%s)
+    DRAIN_SECS=$((DRAIN_END - DRAIN_START))
     warn "Drain timeout (${DRAIN_TIMEOUT}s). ${Q} messages still pending."
     break
   fi
@@ -282,7 +300,7 @@ done
 # ── Step 10: Harvest metrics ──────────────────────────────────────────────────
 step "10/10  Collecting Phase B metrics..."
 echo ""
-bash scripts/harvest-metrics.sh B
+bash scripts/harvest-metrics.sh B "${DLQ_BEFORE}" "${DRAIN_SECS:-}" "${ACCEPTED_EVENTS:-}"
 
 # ── Summary ───────────────────────────────────────────────────────────────────
 END_TS=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
