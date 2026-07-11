@@ -15,7 +15,7 @@ class PostgresConnection {
         database: config.postgres.database,
         user: config.postgres.user,
         password: config.postgres.password,
-        max: 20,
+        max: config.postgres.poolMax,
         idleTimeoutMillis: 30_000,
         connectionTimeoutMillis: 2_000,
       });

@@ -15,11 +15,14 @@ const envSchema = z.object({
   PG_DATABASE: z.string().min(1, 'PG_DATABASE is required'),
   PG_USER: z.string().min(1, 'PG_USER is required'),
   PG_PASSWORD: z.string().min(1, 'PG_PASSWORD is required'),
+  PG_POOL_MAX: z.string().default('20').transform(Number),
 
   RABBITMQ_URL: z.string().min(1, 'RABBITMQ_URL is required'),
   RABBITMQ_QUEUE: z.string().default('api_hits'),
   RABBITMQ_RETRY_ATTEMPTS: z.string().default('3').transform(Number),
   RABBITMQ_RETRY_DELAY: z.string().default('200').transform(Number),
+
+  CONSUMER_PREFETCH: z.string().default('50').transform(Number),
 
   REDIS_URL: z.string().url('REDIS_URL must be a valid URL').default('redis://localhost:6379'),
   REDIS_CACHE_TTL_VALID: z.string().default('300').transform(Number),
@@ -52,8 +55,9 @@ export const config = {
   node_env: raw.NODE_ENV,
   port: raw.PORT,
   mongo: { uri: raw.MONGO_URI, dbName: raw.MONGO_DB_NAME },
-  postgres: { host: raw.PG_HOST, port: raw.PG_PORT, database: raw.PG_DATABASE, user: raw.PG_USER, password: raw.PG_PASSWORD },
+  postgres: { host: raw.PG_HOST, port: raw.PG_PORT, database: raw.PG_DATABASE, user: raw.PG_USER, password: raw.PG_PASSWORD, poolMax: raw.PG_POOL_MAX },
   rabbitmq: { url: raw.RABBITMQ_URL, queue: raw.RABBITMQ_QUEUE, retryAttempts: raw.RABBITMQ_RETRY_ATTEMPTS, retryDelay: raw.RABBITMQ_RETRY_DELAY },
+  consumer: { prefetch: raw.CONSUMER_PREFETCH },
   redis: { url: raw.REDIS_URL, ttlValid: raw.REDIS_CACHE_TTL_VALID, ttlInvalid: raw.REDIS_CACHE_TTL_INVALID },
   jwt: { secret: raw.JWT_SECRET, expiresIn: raw.JWT_EXPIRES_IN },
   rateLimit: { windowMs: raw.RATE_LIMIT_WINDOW_MS, maxRequests: raw.RATE_LIMIT_MAX_REQUESTS },

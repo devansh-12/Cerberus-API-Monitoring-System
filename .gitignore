@@ -67,3 +67,7 @@ k8s/secret.yaml
 k8s/secret.local.yaml
 playwright-report/
 test-results/
+
+# Benchmark — generated datasets and result reports
+server/benchmark/data/
+server/results/

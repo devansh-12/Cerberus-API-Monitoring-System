@@ -14,6 +14,8 @@ export interface IApiHit extends Document {
   ApiKeyId: mongoose.Types.ObjectId;
   ip: string;
   userAgent?: string;
+  /** Stamped by replay-logs.js — enables true E2E pipeline latency measurement */
+  clientSentAt?: Date;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -31,6 +33,7 @@ const apiHitSchema = new Schema<IApiHit>(
     ApiKeyId: { type: Schema.Types.ObjectId, ref: 'ApiKey', required: true, index: true },
     ip: { type: String, required: true },
     userAgent: { type: String },
+    clientSentAt: { type: Date, index: true },   // set by replay-logs.js for E2E latency
   },
   { timestamps: true, collection: 'api_hits' },
 );

@@ -4,7 +4,8 @@ import BaseApiKeyRepository from "./BaseApiKeyRepository.js";
 
 /**
  * MongoApiKeyRepository class to handle database operations related to API keys
- * This class extends the BaseApiKeyRepository and provides implementations for creating API keys, finding API keys by value, and finding/counting API keys by client ID. It uses Mongoose for database interactions and includes error handling and logging for each operation.
+ * This class extends the BaseApiKeyRepository and provides implementations for creating API keys, finding API keys by value, and finding/counting API keys by client ID. 
+ * It uses Mongoose for database interactions and includes error handling and logging for each operation.
  */
 class MongoApiKeyRepository extends BaseApiKeyRepository {
     constructor() {
