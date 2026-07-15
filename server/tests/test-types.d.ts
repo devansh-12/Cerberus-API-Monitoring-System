@@ -24,4 +24,16 @@ declare module '../../services/client/client.container.js' {
   export default clientContainer;
 }
 
+declare module '../../src/services/processor/service/ProcessorService.js' {
+  export class ProcessorService {
+    constructor(dependencies: {
+      apiHitRepository: any;
+      metricsRepository: any;
+    });
+    processEvent(eventData: any): Promise<void>;
+    [key: string]: any;
+  }
+}
+
 export {};
+

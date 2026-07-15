@@ -99,6 +99,15 @@ step "2/10  Seeding database (clean run)..."
 npm run seed:clean --silent 2>&1 | grep -E "✅|❌|API Keys:|Clients:" | sed 's/^/  /'
 ok "Database seeded"
 
+# Purge the DLQ so each Phase A run has a clean baseline.
+# (RabbitMQ persists the DLQ across container restarts — without this,
+#  DLQ counts from previous runs pollute the current run's failure rate.)
+DLQ_PURGED=$(docker exec api-monitoring-rabbitmq \
+  rabbitmqctl purge_queue api_hits.dlq --vhost api_monitoring 2>/dev/null \
+  | grep -oE '[0-9]+' | head -1 || echo "0")
+ok "DLQ purged (${DLQ_PURGED:-0} stale messages removed)"
+
+
 # ── Step 3: Extract API key ───────────────────────────────────────────────────
 step "3/10  Extracting real API key..."
 API_KEY=$(node scripts/get-api-key.js --env production 2>/dev/null \

@@ -183,49 +183,64 @@ ok "Replay started in background (PID: ${REPLAY_PID})"
 
 # ── Step 8: Consumer crash test ───────────────────────────────────────────────
 step "8/10  Consumer crash simulation..."
+info "Using unthrottled DLQ_TEST_API_KEY to build queue — independent of rate-limited replay."
+echo ""
 
-echo "  Waiting ${CRASH_DELAY}s for replay to ramp up before crash..."
-sleep "$CRASH_DELAY"
+# Send 500 bursts of 10 events each (= 5,000 events) using the unthrottled key
+# to guarantee queue buildup regardless of how fast the rate-limited replay finishes.
+CRASH_FLOOD_LOG=$(mktemp /tmp/cerberus-crash-flood-XXXX.log)
+node benchmark/replay-logs.js \
+  --api-key  "$DLQ_TEST_API_KEY" \
+  --target   "$TARGET" \
+  --limit    5000 \
+  --workers  50 \
+  --batch-size 10 \
+  --mode     throughput \
+  > "$CRASH_FLOOD_LOG" 2>&1 &
+FLOOD_PID=$!
+ok "Queue flood started in background (PID: ${FLOOD_PID}) — building depth before crash..."
 
-# Check replay is still running
-if ! kill -0 "$REPLAY_PID" 2>/dev/null; then
-  warn "Replay already finished before crash test. Skipping crash test."
-else
-  # Record queue depth before crash
-  DEPTH_BEFORE=$(docker exec api-monitoring-rabbitmq \
+sleep 2   # let the queue build a bit
+
+# Record queue depth at crash point
+DEPTH_BEFORE=$(docker exec api-monitoring-rabbitmq \
+  rabbitmqctl list_queues --vhost api_monitoring name messages 2>/dev/null \
+  | awk '/^api_hits\t/ {print $2}' | tr -d '[:space:]')
+DEPTH_BEFORE="${DEPTH_BEFORE:-0}"
+
+echo -e "  ${RED}🔴 Stopping consumer (simulating crash)... Queue depth: ${DEPTH_BEFORE}${RESET}"
+docker stop api-monitoring-consumer > /dev/null 2>&1
+CRASH_START=$(date +%s)
+
+echo "  Consumer offline for ${CRASH_DURATION}s — events accumulating in RabbitMQ..."
+
+# Show live queue depth while consumer is down
+for ((i=0; i<CRASH_DURATION; i+=5)); do
+  sleep 5
+  Q=$(docker exec api-monitoring-rabbitmq \
     rabbitmqctl list_queues --vhost api_monitoring name messages 2>/dev/null \
     | awk '/^api_hits\t/ {print $2}' | tr -d '[:space:]')
-  DEPTH_BEFORE="${DEPTH_BEFORE:-0}"
+  printf "\r  Queue accumulating: %-8s messages pending  [%ds elapsed]" "${Q:-?}" "$((i+5))"
+done
 
-  echo -e "  ${RED}🔴 Stopping consumer (simulating crash)... Queue depth: ${DEPTH_BEFORE}${RESET}"
-  docker stop api-monitoring-consumer > /dev/null 2>&1
-  CRASH_START=$(date +%s)
+# Snapshot queue depth at peak (before restart)
+DEPTH_PEAK=$(docker exec api-monitoring-rabbitmq \
+  rabbitmqctl list_queues --vhost api_monitoring name messages 2>/dev/null \
+  | awk '/^api_hits\t/ {print $2}' | tr -d '[:space:]')
+DEPTH_PEAK="${DEPTH_PEAK:-0}"
 
-  echo "  Consumer offline for ${CRASH_DURATION}s — events will accumulate in RabbitMQ..."
+echo ""
+echo -e "  ${GREEN}🟢 Restarting consumer... Peak queue depth was: ${DEPTH_PEAK}${RESET}"
+docker start api-monitoring-consumer > /dev/null 2>&1
+CRASH_END=$(date +%s)
+CRASH_ACTUAL=$((CRASH_END - CRASH_START))
 
-  # Show live queue depth while consumer is down
-  for ((i=0; i<CRASH_DURATION; i+=5)); do
-    sleep 5
-    Q=$(docker exec api-monitoring-rabbitmq \
-      rabbitmqctl list_queues --vhost api_monitoring name messages 2>/dev/null \
-      | awk '/^api_hits\t/ {print $2}' | tr -d '[:space:]')
-    printf "\r  Queue accumulating: %-8s messages pending  [%ds elapsed]" "${Q:-?}" "$((i+5))"
-  done
+ok "Consumer restarted after ${CRASH_ACTUAL}s offline. Queue depth at restart: ${DEPTH_PEAK}"
 
-  # Snapshot queue depth at peak (before restart)
-  DEPTH_PEAK=$(docker exec api-monitoring-rabbitmq \
-    rabbitmqctl list_queues --vhost api_monitoring name messages 2>/dev/null \
-    | awk '/^api_hits\t/ {print $2}' | tr -d '[:space:]')
-  DEPTH_PEAK="${DEPTH_PEAK:-0}"
+# Wait for flood + rate-limited replay to both finish
+wait "$FLOOD_PID" 2>/dev/null || true
+rm -f "$CRASH_FLOOD_LOG"
 
-  echo ""
-  echo -e "  ${GREEN}🟢 Restarting consumer... Peak queue depth was: ${DEPTH_PEAK}${RESET}"
-  docker start api-monitoring-consumer > /dev/null 2>&1
-  CRASH_END=$(date +%s)
-  CRASH_ACTUAL=$((CRASH_END - CRASH_START))
-
-  ok "Consumer restarted after ${CRASH_ACTUAL}s offline. Queue depth at restart: ${DEPTH_PEAK}"
-fi
 
 # ── Step 9: Inject malformed payloads → DLQ test ─────────────────────────────
 step "9/10  Injecting malformed payloads to test DLQ routing..."
@@ -259,9 +274,12 @@ echo ""
 echo "  ── Replay Output ──────────────────────────────────────"
 grep -A 30 "REPLAY RESULTS" "$REPLAY_LOG" | sed 's/^/  /' || true
 
-# Extract accepted events (2xx) from replay log — used for accurate DLQ rate
+# Extract accepted events (2xx) from replay log — used for accurate DLQ rate.
+# Use awk to split on ': ' and strip non-numeric chars from the value field.
+# (grep -oE '[0-9,]+' | head -1 is broken: it grabs '2' from '(2xx)' first.)
 ACCEPTED_EVENTS=$(grep "Successful (2xx)" "$REPLAY_LOG" \
-  | grep -oE '[0-9,]+' | head -1 | tr -d ',')
+  | awk -F': ' '{gsub(/[^0-9,]/, "", $2); gsub(",", "", $2); print $2}' \
+  | head -1)
 ACCEPTED_EVENTS="${ACCEPTED_EVENTS:-}"
 
 rm -f "$REPLAY_LOG"
