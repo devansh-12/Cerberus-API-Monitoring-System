@@ -29,7 +29,9 @@ const envSchema = z.object({
   REDIS_CACHE_TTL_INVALID: z.string().default('60').transform(Number),
 
   JWT_SECRET: z.string().min(32, 'JWT_SECRET must be at least 32 characters'),
-  JWT_EXPIRES_IN: z.string().default('24h'),
+  JWT_EXPIRES_IN: z.string().default('15m'),
+  JWT_REFRESH_SECRET: z.string().min(32, 'JWT_REFRESH_SECRET must be at least 32 characters'),
+  JWT_REFRESH_EXPIRES_IN: z.string().default('7d'),
 
   RATE_LIMIT_WINDOW_MS: z.string().default('60000').transform(Number),
   RATE_LIMIT_MAX_REQUESTS: z.string().default('100').transform(Number),
@@ -59,7 +61,7 @@ export const config = {
   rabbitmq: { url: raw.RABBITMQ_URL, queue: raw.RABBITMQ_QUEUE, retryAttempts: raw.RABBITMQ_RETRY_ATTEMPTS, retryDelay: raw.RABBITMQ_RETRY_DELAY },
   consumer: { prefetch: raw.CONSUMER_PREFETCH },
   redis: { url: raw.REDIS_URL, ttlValid: raw.REDIS_CACHE_TTL_VALID, ttlInvalid: raw.REDIS_CACHE_TTL_INVALID },
-  jwt: { secret: raw.JWT_SECRET, expiresIn: raw.JWT_EXPIRES_IN },
+  jwt: { secret: raw.JWT_SECRET, expiresIn: raw.JWT_EXPIRES_IN, refreshSecret: raw.JWT_REFRESH_SECRET, refreshExpiresIn: raw.JWT_REFRESH_EXPIRES_IN },
   rateLimit: { windowMs: raw.RATE_LIMIT_WINDOW_MS, maxRequests: raw.RATE_LIMIT_MAX_REQUESTS },
   cookie: { httpOnly: raw.COOKIE_HTTP_ONLY, secure: raw.COOKIE_SECURE, expiresIn: raw.COOKIE_EXPIRES_IN },
   // kept for backward-compat

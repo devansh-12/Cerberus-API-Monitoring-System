@@ -17,6 +17,7 @@ export interface IUser extends Document {
   clientId?: mongoose.Types.ObjectId;
   isActive: boolean;
   permissions: IUserPermissions;
+  refreshToken?: string;  // hashed refresh token stored in DB
   createdAt: Date;
   updatedAt: Date;
 }
@@ -63,6 +64,8 @@ const userSchema = new Schema<IUser>(
       canViewAnalytics: { type: Boolean, default: true },
       canExportData: { type: Boolean, default: false },
     },
+    // Stored as a bcrypt hash — never the raw token value.
+    refreshToken: { type: String, required: false, default: null },
   },
   { timestamps: true, collection: 'users' },
 );
@@ -78,6 +81,7 @@ userSchema.pre('save', async function (next) {
 
 userSchema.index({ clientId: 1, isActive: 1 });
 userSchema.index({ role: 1 });
+userSchema.index({ refreshToken: 1 }, { sparse: true }); // sparse: skips null docs
 
 const User = mongoose.model<IUser>('User', userSchema);
 export default User;

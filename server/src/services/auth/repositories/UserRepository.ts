@@ -88,6 +88,32 @@ class MongoUserRepository extends BaseRepository<IUser> {
       throw error;
     }
   }
+
+  /**
+   * Saves (or clears) the hashed refresh token for a user.
+   * Pass null to revoke — used during logout.
+   */
+  async updateRefreshToken(userId: string, hashedToken: string | null): Promise<void> {
+    try {
+      await this.model.findByIdAndUpdate(userId, { refreshToken: hashedToken });
+    } catch (error) {
+      logger.error('Error updating refresh token', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Looks up a user whose stored hashed refresh token matches the provided hash.
+   */
+  async findByRefreshToken(hashedToken: string): Promise<IUser | null> {
+    try {
+      const user = await this.model.findOne({ refreshToken: hashedToken });
+      return user;
+    } catch (error) {
+      logger.error('Error finding user by refresh token', error);
+      throw error;
+    }
+  }
 }
 
 export default new MongoUserRepository();
